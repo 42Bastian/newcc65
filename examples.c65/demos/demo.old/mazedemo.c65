@@ -1,0 +1,60 @@
+/* demo program for cc65 on the atari lynx */
+#include <lynx.h>
+#define SCREEN_ADDR 0x8000
+
+main()
+{
+    int x;
+    int *j;
+    char *a;
+
+    make_scan_table();
+
+    a = 0xfff9;  /* map suzy, mickey and roms into memory at fc, fd, fe */
+    *a = 0x00;
+    a = 0xfc83;  /* yuck this --- (SPRINIT) */
+    *a = 0xf3;
+    a = 0xfc92;  /* clear unsafe access bit, set left hand */
+    *a = 0x06;
+    a = 0xfd8c;  /* clear serial data bogosities */
+    *a = 0x0c;
+    j = 0xfd94;  /* set screen base address - do this last */
+    *j = SCREEN_ADDR;
+
+    poke(0xfda0, 0x0); poke(0xfdb0, 0x00);
+    poke(0xfda1, 0xf); poke(0xfdb1, 0x00); 
+    poke(0xfda2, 0x0); poke(0xfdb2, 0xf0); 
+    poke(0xfda3, 0x0); poke(0xfdb3, 0x0f); 
+    poke(0xfda4, 0xf); poke(0xfdb4, 0x0f); 
+    poke(0xfdaf, 0xf); poke(0xfdbf, 0xff);
+    
+    bzero(SCREEN_ADDR, 80*102);
+    poke(5,0);
+    while (1)
+      {
+      x = 0;
+      while (!peek(0xfcb0)) x+= 37;
+      seedrand(x);
+      bzero(SCREEN_ADDR, 80*102);
+      poke(1,(genrand()/415)*2);
+      poke(2,(genrand()/656)*2);
+      maze();
+      }
+}
+
+char scanbasl[102];
+char scanbash[102];
+
+make_scan_table()
+{
+  int i;
+  
+  for (i=0; i < 102; i++)
+    {
+    scanbasl[i] = (i*80+SCREEN_ADDR)&0xff;
+    scanbash[i] = ((i*80+SCREEN_ADDR)>>8)&0xff;
+    }
+}
+
+poke(a,b) char *a; char b; { *a = b; }
+peek(a) char *a; { return *a; }

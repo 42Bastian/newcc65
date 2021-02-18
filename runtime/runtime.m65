@@ -1,0 +1,1482 @@
+;
+; Runtime code for cc65.
+; assemble with global.m65
+
+; changes by 42Bastian Schick
+
+		bsszp
+
+sp      ds 2             ; stack pointer
+sreg    ds 2             ; secondary register
+ptr1    ds 2
+ptr2    ds 2
+ptr3    ds 2
+tmp1    ds 1
+tmp2    ds 1
+tmp3    ds 1
+tmp4    ds 1
+
+runtime_save_size ds 1 
+
+; 42BS
+; shadow-register
+; Mikey
+__iodat  ds 1
+__iodir  ds 1
+__viddma ds 1
+;Suzy
+__sprsys ds 1
+
+                global sp,sreg,ptr1,ptr2,ptr3
+                global tmp1,tmp2,tmp3,tmp4
+		global runtime_save_size
+                
+                global __iodat,__iodir,__viddma,__sprsys
+
+		text
+		
+        global __start 		; programs lo memory boundary
+        xref __stacktop,_main	; external refs.
+
+__start:
+;
+; this is the first piece of actual generated code...
+; startup
+;
+; set up system 42BS
+;
+        sei
+        cld
+;
+; init bank-switching
+;
+        lda #$c
+        sta $fff9
+;
+; disable all timer-interrupts
+;
+        lda #$80
+        trb $fd01
+        trb $fd05
+        trb $fd09
+        trb $fd0d
+        trb $fd15
+        trb $fd19
+        trb $fd1d
+;
+; disable RX/TX-irq, set to 8E1
+;
+        lda #%11101
+        sta $fd8c
+;
+; clear all pending interrupts
+;
+        lda $fd81
+        sta $fd80
+;
+; set stack-pointer
+;
+        ldx #$ff
+        txs
+;
+; init hardware
+;
+        jsr mikey_suzy
+;
+; now we're done
+;
+        ldax    #__stacktop     ; init stk ptr
+        sta     sp
+        stx     sp+1
+;
+; init runtime_save_size
+;
+	sec
+	lda #tmp4
+	sbc #sp
+	sta runtime_save_size
+;
+; start main
+;
+        ldy     #0      ; 0 args
+        jsr     _main   ; go!
+        
+        .globl  _exit
+_exit:
+
+;
+; fall into BRK
+;
+        brk #0              
+noreturns:
+        bra     noreturns
+        
+; ---------------------------
+; routines for inc/dec'ing sp
+; ----------------------------
+
+        .globl  incsp2  ; inc sp by 2
+incsp2:
+; do this by hand, cause it gets used a lot
+        inc     sp
+        bne     incsp1
+        inc     sp+1
+; might as well do incsp1 here, as we have the code...
+        .globl  incsp1
+incsp1:
+        inc     sp
+        bne     *+4
+        inc     sp+1
+        rts
+        
+        .globl  incsp3  ; inc sp by 3
+incsp3:
+        ldy     #3
+        lbra     addysp
+
+        .globl  incsp4  ; inc sp by 4
+incsp4:
+        ldy     #4
+        lbra     addysp
+
+        .globl  incsp5  ; inc sp by 5
+incsp5:
+        ldy     #5
+        lbra     addysp
+
+        .globl  incsp6  ; inc sp by 6
+incsp6:
+        ldy     #6
+        lbra     addysp
+
+        .globl  incsp7  ; inc sp by 7
+incsp7:
+        ldy     #7
+        lbra     addysp
+
+        .globl  incsp8  ; inc sp by 8
+incsp8:
+        ldy     #8
+;>        lbra     addysp
+
+        .globl  addysp  ; add Y to SP
+addysp:
+        pha             ; save A
+        clc
+        tya             ; get the value
+        adc     sp      ; add lo byte
+        sta     sp      ; put it back
+        bcc     addysp_1        ; if no carry, we're done
+        inc     sp+1    ; inc hi byte
+addysp_1:
+        pla             ; get A back
+        lbra     tstax   ; return condition codes
+
+;
+; decrementing SP
+;
+        .globl  decsp1
+decsp1:
+        ldy     #1
+        lbra     subysp
+
+        .globl  decsp3
+decsp3:
+        ldy     #3
+        lbra     subysp
+
+        .globl  decsp4
+decsp4:
+        ldy     #4
+        lbra     subysp
+
+        .globl  decsp5
+decsp5:
+        ldy     #5
+        lbra     subysp
+
+        .globl  decsp6
+decsp6:
+        ldy     #6
+        lbra     subysp
+
+        .globl  decsp7
+decsp7:
+        ldy     #7
+        lbra     subysp
+
+        .globl  decsp8
+decsp8:
+        ldy     #8
+;>        lbra     subysp
+
+
+        .globl  subysp  ; sub Y from SP
+subysp:
+        sty     tmp1    ; save the value
+        pha             ; save A
+        lda     sp      ; get lo byte
+        sec
+        sbc     tmp1    ; sub y val
+        sta     sp      ; put it back
+        bcs     subysp_1        ; if carry, we're done
+          dec           sp+1      ; dec hi byte
+subysp_1:
+        pla             ; get A back
+        rts             ; done
+
+        .globl  decsp2
+decsp2:
+;
+; do this one by hand, cause it gets used a lot
+;
+        pha
+        sec
+        lda     sp
+        sbc     #2
+        sta     sp
+        bcs decsp2_1
+          dec sp+1
+decsp2_1:
+        pla
+        rts
+
+;
+; routines for inc/dec'ing AX
+;
+        .globl  incax8
+incax8:
+        ldy     #8
+        lbra     indexax
+        .globl  incax7
+incax7:
+        ldy     #7
+        lbra     indexax
+        .globl  incax6
+incax6:
+        ldy     #6
+        lbra     indexax
+        .globl  incax5
+incax5:
+        ldy     #5
+        lbra     indexax
+        .globl  incax4
+incax4:
+        ldy     #4
+        lbra     indexax
+        .globl  incax3
+incax3:
+        ldy     #3
+	global addaxy
+addaxy:	
+        .globl  indexax ; index in Y, add Y to AX
+indexax:
+        sty     tmp1
+        clc
+        adc     tmp1
+        lbcc    tstax
+        inx
+        lbra tstax
+
+        .globl  incax2  ; inc AX by 2
+incax2:
+        ina
+        bne incax2_1
+        inx
+incax2_1:
+
+        .globl  incax1  ; inc AX by 1
+incax1:
+        ina
+        lbne     tstax  ; if not zero, we're done
+        inx             ; inc top half
+incax1_1:
+        lbra     tstax  ; return cond codes
+
+;
+; decrement AX
+;
+
+        .globl  decax2  ; dec AX by 2
+decax2:
+        sec
+        sbc #2
+        lbcs tstax
+        dex
+        lbra tstax
+
+        .globl  decax1  ; dec AX by 1
+decax1:
+        dea
+        cmp     #$FF    ; wrap?
+        lbne    tstax   ; if not -1, we're done
+        dex             ; dec top half
+        lbra    tstax   ; return cond codes
+; ------------------------------------
+; ops for loading/indexing stack slots
+; ------------------------------------
+
+        .globl  ldaxysp ; load AX from SP@(Y)
+ldaxysp:
+        lda     (sp),y  ; get lo byte
+        pha
+        iny
+        lda     (sp),y  ; get hi byte
+        tax             ; into x
+        pla             ; get lo byte back
+        lbra     tstax   ; return cc
+
+        .globl  ldaysp  ; load A from SP@(Y)
+ldaysp:         ; zzz maybe do this on line?
+        ldx     #0
+        lda     (sp),y
+        bpl ldaysp1
+        dex
+ldaysp1 rts
+
+        .globl  locysp  ; compute location of SP@(Y) in AX
+locysp:
+        ldx     sp+1    ; get hi byte
+        clc             ; set up for add
+        tya             ; get offset
+        adc     sp      ; compute lo byte
+        bcc     locysp_1
+        inx             ; add in carry
+locysp_1:
+        rts
+
+        .globl  plocysp ; push addr y(sp)
+plocysp:
+        jsr     locysp
+        lbra     pushax
+        
+        .globl  plocidx ; push location of AX@(Y)
+plocidx:
+        jsr     indexax
+        lbra     pushax
+
+
+;
+; push/pop things on stack
+;
+
+        .globl  pushwidx        ; push word at (AX)Y
+pushwidx:
+        jsr     indexax ; index
+        jsr     ldaxi
+        bra     pushax
+
+        .globl  pushbidx        ; push byte at (AX)Y
+pushbidx:
+        jsr     indexax ; index
+        jsr     ldai
+        bra     pushax
+
+        .globl  push0
+
+push0:
+        lda     #0
+
+        .globl pusha
+pusha:
+        ldx #0
+; ...
+        .globl  pushax  ; push AX
+pushax:
+;        jsr     decsp2  ;               KAO     3 bytes shorter
+        tay
+				sec
+				lda sp
+        sbc #2
+				sta sp
+				bcs .l1
+				dec sp+1
+.l1     tya				
+        sta (sp)        ; sta (sp)   KAO    10 cycles faster
+        pha
+        txa             ;                 KAO    -1 for sta (sp)
+        ldy     #1      ;           KAO    -3 for pha
+        sta     (sp),y  ;               KAO    -4 for pla
+        pla
+        rts             ; done    KAO    -2 for iny
+
+        .globl  popax   ; pop stack into AX
+popax:
+        ldy     #1      ;           KAO     3 bytes shorts
+        lda     (sp),y  ;               KAO     9 cycles faster
+        tax             ;                 KAO    -3 for pha      -2 for iny
+        lda (sp)        ; lda (sp)   KAO    -4 for pla
+        lbra     incsp2 ; bump stack and return
+        
+        .globl  popsreg ; pop stack into SREG
+popsreg:
+        pha             ; save A
+        lda (sp)        ; get lo byte   ; lda (sp)
+        sta     sreg    ; store it
+        ldy     #1
+        lda     (sp),y  ; get hi byte
+        sta     sreg+1  ; store it
+        pla             ; get A back
+        lbra     incsp2 ; bump stack and return
+        
+ ;       .globl  pushwysp        ; push a word from SP@(Y)
+pushwysp:
+        lda     (sp),y  ; get lo byte
+        pha             ; Save it
+        iny             ; bump idx
+        lda     (sp),y  ; get hi byte
+        tax             ; into X
+        pla             ; get back lo byte
+        jmp     pushax  ; push that
+
+        .globl  pushbysp        ; push a byte from SP@(Y)
+pushbysp:
+        lda     (sp),y  ; get lo byte
+        ldx     #0
+        lbra     pushax  ; push that
+
+;
+; Various kinds of store operators
+;
+        .globl  staxspidx       ; store AX at SP@@(Y)
+staxspidx:
+        jsr     staspic ; use common part
+        pha
+        iny
+        lda     tmp2
+        sta     (ptr1),y
+        tax
+        pla
+        lbra     tstax
+
+        .globl  staspidx
+staspidx:
+        jsr     staspic ; use common part
+        ldx     tmp2
+        lbra     tstax
+staspic:
+        sta     tmp1
+        stx     tmp2
+;>        sty     tmp3
+        phy
+        jsr     popax   ; get the pointer
+        sta     ptr1
+        stx     ptr1+1
+;>        ldy     tmp3
+	ply
+        lda     tmp1
+        sta     (ptr1),y
+        rts     
+
+        .globl  staxysp
+staxysp:
+        sta     (sp),y
+        pha
+        txa
+        iny
+        sta     (sp),y
+        pla
+        lbra     tstax
+        .globl  staysp
+staysp:
+        sta     (sp),y
+        lbra     tstax
+	
+        .globl  staxspp ; store AX thru (sp), and pop
+staxspp:
+       pha             ; save A
+       phx             ; save X
+       jsr     popax   ; pop addr into AX
+       sta     ptr1    ; save into a pointer
+       stx     ptr1+1
+       ldy     #1
+       pla             ; get hi byte back
+       sta     (ptr1),y        ; store it
+       tax             ; back into X
+       pla             ; get lo byte
+       sta     (ptr1)        ; store it
+       lbra     tstax   ; return cc
+
+        .globl  staspp  ; store A thru (sp), and pop
+staspp:
+        pha             ; save A
+        phx             ; save X
+        jsr     popax   ; pop addr into AX
+        sta     ptr1    ; save into a pointer
+        stx     ptr1+1
+        plx             ; get X
+        pla             ; get lo byte
+        sta (ptr1)
+        lbra     tstax   ; return cc
+;
+; Operations on AX
+;
+
+
+        .globl  negax   ; negate ax
+negax:
+;>        pha             ; save A
+	tay
+        txa             ; get X
+        eor     #$FF    ; invert
+        tax             ; back to X
+;>        pla             ; get A back
+	tya
+        eor     #$FF    ; invert
+        ina             ; 42BS
+        bne negax_1     ; 42BS
+        inx             ; bump X
+negax_1:
+        rts
+
+        .globl  lnegax  ; logical complement AX
+lnegax:
+        stx     tmp1
+        ora     tmp1
+        beq     lneg1   ; it's zero, so return 1
+        lda     #0
+        tax
+        rts
+lneg1:
+; A is already 0 42BS
+
+        tax
+        ina
+        rts
+
+        .globl  complax ; one's complement AX
+complax:
+        eor     #$FF    ; Not A
+;>        pha
+	tay
+        txa
+        eor     #$FF    ; Not X
+        tax
+;>        pla
+	tya
+        lbra tstax
+
+; ------------------
+; load AX from ...
+; ------------------
+
+;
+; load AX from (AX)Y
+;
+
+        .globl  ldaxidx
+ldaxidx:
+        jsr     indexax ; compute address
+;>        lbra     ldaxi           ; load indirect
+
+;
+; load AX indirect thru AX
+;
+        .globl  ldaxi
+ldaxi:
+        sta     ptr1   ;tmpptr
+        stx     ptr1+1
+        ldy     #1
+        lda     (ptr1),y
+        tax
+        lda     (ptr1)
+        lbra    tstax   ; return cond codes
+        
+	global ldauidx
+ldauidx:
+	jsr indexax
+;
+; load A indirect thru AX (unsigned)
+;
+        .globl  ldaui   ; unsigned edition
+ldaui:
+        sta     ptr1 	;tmpptr 
+        stx     ptr1+1
+        lda     (ptr1)
+        ldx     #$00
+        lbra    tstax
+        
+        .globl  ldaidx  ; load A from (AX)Y
+ldaidx:
+        jsr     indexax ; compute address
+;>        lbra     ldai    ; load indirect
+
+
+;
+; load A indirect thru AX (signed)
+;
+
+        .globl  ldai
+
+ldai:
+        sta     ptr1 	;tmpptr  ; set pointer
+        stx     ptr1+1
+        ldx     #0      ; preset for pos. 42BS
+        lda     (ptr1)
+        bpl     ldai_1  ; pos...
+        dex
+        rts
+ldai_1: 
+;>         lbra     tstax           ; return cond codes
+
+;
+; test AX for nonzero-ness.  return result in CC
+;
+        .globl  tstax
+tstax:
+        cpx     #0      ; test X
+        beq     tstax_x0        ; 0, go see what A has
+        rts
+
+tstax_x0:               ; X was 0, try A
+;>        cmp           #0      ; test A
+        tay
+        bpl     tstax_9 ; pos or zero is ok, just return
+        ldy     #1      ; force 'positive'
+tstax_9:
+        rts             ; done, just return
+
+
+;
+; operations on SREG
+;
+
+        .globl  aslax   ; shift AX left 1
+aslax:
+        asl      A
+        pha
+        txa
+        rol      A
+        tax
+        pla
+        lbra tstax
+        
+        .globl  asltos
+asltos:
+        cpx     #0      ; X nonzero?
+        bne     aslsreg_0       ; no, just return 0
+        pha
+        jsr popax
+        ply
+;
+; ... fall thru
+;
+        global aslaxy
+aslaxy:
+        cpy     #0      ; shift count 0?
+        lbeq tstax      ; done shifting
+        cpy #8
+        beq asl8
+        stx     tmp1    ; use A and tmp1 as register    
+aslsreg_1:
+        asl     A       ; shift A
+        rol     tmp1
+        dey             ; dec counter
+        bne     aslsreg_1
+aslsreg_9:
+        ldx     tmp1    ; get hi byte
+        lbra     tstax
+aslsreg_0:
+        lda     #0
+        tax
+        rts             ; Z is set
+asl8:	tax
+	lda #0
+	lbra tstax
+	
+
+        .globl  asrax           ; shift AX right 1
+asrax:
+;>        pha
+	tay
+        txa
+        cpx #$80                ; set C if neg
+        ror A
+        tax
+;>        pla
+	tya
+        ror A
+        lbra tstax
+
+        .globl  asrtos
+asrtos:
+        cpx     #0      ; X nonzero?
+        bne     aslsreg_0       ; no, just return 0
+        pha
+        jsr popax
+        ply
+;
+; fall thru ...
+;
+        global asraxy
+asraxy:
+        cpy     #0
+        lbeq tstax
+        stx     tmp1    ; leave hi byte in tmp1
+asrsreg_1:
+        cpx     #$80    ;  compare, to set carry bit if neg
+        ror     tmp1    ; shift hi byte, preserving hi bit
+        ror     A       ; shift lo byte
+        dey             ; dec shift count
+        bne     asrsreg_1       ; 0? done
+        ldx     tmp1    ; get hi byte
+asrsreg_9:
+        lbra     tstax   ; return status for optimized code
+
+        .globl  addtos
+addtos:
+        jsr     popsreg   ; add SREG to AX
+        clc
+        adc     sreg    ; add lo byte
+        tay
+        txa
+        adc     sreg+1  ; add hi byte
+        tax
+        tya
+        lbra     tstax   ; return status for optimized code
+        
+	global decax3
+decax3:	ldy #3
+	bra subaxy
+	
+	global decax4
+decax4	ldy #4
+	bra subaxy
+	
+	global decax5
+decax5	ldy #5
+	bra subaxy
+	
+	global decax6
+decax6	ldy #6
+	bra subaxy
+	
+	global decax7
+decax7	ldy #7
+	bra subaxy
+	
+	global decax8
+decax8	ldy #8
+        .globl subaxy
+subaxy: 
+        sty sreg
+        sec
+        sbc sreg
+        lbcs tstax
+        dex
+        lbra tstax
+        
+        .globl  subtos
+subtos:
+        jsr     popsreg ; sub AX from SREG, result in AX
+        sta     tmp1
+        stx     tmp2    ; save AX
+        lda     sreg
+        sec
+        sbc     tmp1    ; sub lo byte
+        tay
+        lda     sreg+1
+        sbc     tmp2    ; sub hi byte
+        tax
+        tya
+        lbra     tstax   ; return status for optimized code
+
+        .globl  or_tos
+or_tos:
+        jsr     popsreg ; for optimized code
+        ora     sreg
+        tay
+        txa
+        ora     sreg+1
+        tax
+        tya
+        lbra     tstax   ; return status for optimized code
+	
+        .globl  xortos
+xortos:
+        jsr     popsreg ; for optimized code
+        eor     sreg
+        tay
+        txa
+        eor     sreg+1
+        tax
+        tya
+        lbra     tstax   ; return status for optimized code
+
+        .globl  andtos
+andtos:
+        jsr     popsreg ; for optimized code
+        and     sreg
+        tay
+        txa
+        and     sreg+1
+        tax
+        tya
+        lbra     tstax   ; return status for optimized code
+;
+; comparisons
+;
+        .globl  axzerop
+axzerop:
+        tay
+        bne     return1
+        cpx     #0
+        bne     return1
+        bra     return0
+        
+        .globl  toseqax
+toseqax:
+        jsr     popsreg ; for optimized code
+        .globl  sregeqax        ; SREG == AX
+sregeqax:
+        cmp     sreg    ; A == sreg lo?
+        bne     return0 ; nope, return 0
+        cpx     sreg+1  ; X == sreg hi?
+        bne     return0
+        bra     return1
+
+        .globl  tosneax
+tosneax:
+        jsr     popsreg ; for optimized code
+        .globl  sregneax        ; SREG != AX
+sregneax:
+        cmp     sreg    ; A == sreg lo?
+        bne     return1 ; nope, return 1
+        cpx     sreg+1  ; X == sreg hi?
+        bne     return1
+        bra     return0
+
+        .globl  tosltax
+tosltax:
+        jsr     popsreg ; for optimized code
+        .globl  sregltax        ; SREG < AX
+sregltax:               ; really AX > SREG...
+        cpx     sreg+1  ; X < sreg hi?
+        bmi     return0 ; X < SR^ , return 0
+        bne     return1 ; not =, so >; return 1
+        cmp     sreg    ; A < sreg lo?
+        bcc     return0 ; A < SR\, return 0
+        beq     return0
+        bra     return1
+
+        .globl  tosultax
+tosultax:
+        jsr     popsreg ; for optimized code
+        .globl  sregultax       ; SREG u< AX
+sregultax:              ; AX u> SREG
+        cpx     sreg+1
+        bcc     return0 ; tos^ u< ax^ , return 0
+        bne     return1 ; if ne, must be u>; return 1
+        cmp     sreg
+        bcc     return0
+        beq     return0
+        bra     return1
+
+        .globl  tosleax
+tosleax:
+        jsr     popsreg ; for optimized code
+        .globl  sregleax        ; SREG <= AX
+sregleax:               ; AX >= SR
+        cpx     sreg+1
+        bmi     return0 ; X < SR^, return 0
+        bne     return1 ; X > SR^, return 1
+        cmp     sreg
+        bcc     return0 ; u> , return 0
+        bra     return1
+
+        .globl  tosuleax
+tosuleax:
+        jsr     popsreg ; for optimized code
+        .globl  sreguleax       ; SREG u<= AX
+sreguleax:
+        cpx     sreg+1
+        bcc     return0 ; X < SR^, return 0
+        bne     return1 ; X > SR^, return 1
+        cmp     sreg
+        bcc     return0
+        bra     return1
+
+;
+; return functions for comparison ops.  these guys are careful
+; to leave the condition codes correct for the AX value.  Compiler
+; depends on that when optimizing; beware!
+;
+return1:
+        ldx     #0
+        lda     #1
+        rts
+
+return0:
+        lda     #0
+        tax
+        rts
+
+        .globl  tosgtax
+tosgtax:
+        jsr     popsreg ; for optimized code
+        .globl  sreggtax        ; SREG > AX
+sreggtax:               ; AX < SR
+        cpx     sreg+1
+        bmi     return1 ; < , return 1
+        bne     return0 ; not =, so >; return 0
+        cmp     sreg
+        bcc     return1 ; < , return 1
+        bra     return0
+        
+        .globl  tosugtax
+tosugtax:
+        jsr     popsreg ; for optimized code
+        .globl  sregugtax       ; SREG u> AX
+sregugtax:
+        cpx     sreg+1
+        bcc     return1 ; < , return 1
+        bne     return0 ; not =, so >; return 0
+        cmp     sreg
+        bcc     return1 ; < , return 1
+        bra     return0
+
+        .globl  tosgeax
+tosgeax:
+        jsr     popsreg ; for optimized code
+        .globl  sreggeax        ; SREG >= AX
+sreggeax:               ; AX <= SR
+        cpx     sreg+1
+        bmi     return1 ; < , return 1
+        bne     return0 ; not =, so >; return 0
+        cmp     sreg
+        bcc     return1 ; < , return 1
+        beq     return1
+        bra     return0
+
+        
+        .globl  tosugeax
+tosugeax:
+        jsr     popsreg ; for optimized code
+        
+        .globl  sregugeax       ; AX u<= SREG
+sregugeax:
+        cpx     sreg+1
+        bcc     return1 ; < , return 1
+        bne     return0 ; not =, so >; return 0
+        cmp     sreg
+        bcc     return1 ; < , return 1
+        beq     return1
+        bra     return0
+
+;
+; function ops
+;
+
+        .globl  enterfun0
+enterfun0:
+        lda     #0
+        bra     enterfun_
+
+        .globl  enterfun1
+enterfun1:
+        lda     #1
+        bra     enterfun_
+
+        .globl  enterfun2
+enterfun2:
+        lda     #2
+        bra     enterfun_
+
+        .globl  enterfun3
+enterfun3:
+        lda     #3
+        bra     enterfun_
+
+        .globl  enterfun4
+enterfun4:
+        lda     #4
+        bra     enterfun_
+
+        .globl  enterfun5
+enterfun5:
+        ldy     #5      ; no savings without the lbranch   KAO
+
+;
+; expect frame size in Y, push fp
+;
+        .globl  enterfun
+enterfun:
+        tya             ; get arg count
+enterfun_:              ; saves 2 cycles ever enterfun[0-5]   KAO
+        jsr     decsp2
+        sta (sp)
+        lda #0
+        ldy     #1
+        sta     (sp),y
+        rts
+
+        	global SaveRegs
+; in : X from where (top)
+;      Y count
+SaveRegs::
+	pla
+	sta tmp1
+	pla
+	sta tmp1+1
+SaveRegs1	
+	lda 0,x
+	pha
+	dex
+	dey
+	bne SaveRegs1
+	
+	lda tmp1+1
+	pha
+	lda tmp1
+	pha
+	rts
+		global RestoreRegs
+; in : X dest (bottom)
+;      Y count
+
+RestoreRegs::
+	pla
+	sta ptr1
+	pla
+	sta ptr1+1
+_RestoreRegs1::
+	pla
+	sta 0,x
+	inx
+	dey
+	bne _RestoreRegs1
+	
+	lda ptr1+1
+	pha
+	lda ptr1
+	pha
+	rts
+	
+        .globl  exitfun ; exit a function.  pop stack and rts
+exitfun:
+	sta tmp1
+	stx tmp1+1
+	tya
+	beq exitfun1
+	ldx #8
+	jsr RestoreRegs
+exitfun1:        
+        lda (sp)        ; that's the pushed arg count
+        ina             ; 42BS
+        asl     A       ; loses big for large arg counts...
+        tay
+        lda tmp1        ; get it back
+        ldx tmp1+1
+        lbra     addysp ; pop that many word-sized things
+;
+; random stuff
+;
+
+;
+; call value on in AX
+;
+        .globl  callax
+callax:
+        sta     tmp1
+        stx     tmp1+1
+        jmp     (tmp1)  ; jump there
+;
+; swap AX with TOS
+;
+        .globl  swapstk
+swapstk:
+        sta     tmp1	;tmpptr
+        phx
+        ldy     #1      ; index
+        lda     (sp),y
+        tax
+        pla
+        sta     (sp),y
+        lda (sp)
+        tay
+        pla
+        sta (sp)
+        tya
+        rts             ; whew!
+
+        .globl  pushwaxi
+pushwaxi:               ; push word (ax)
+        jsr     ldaxi
+        lbra     pushax
+
+        .globl  pushbaxi        ; push byte at (ax)
+pushbaxi:
+        jsr     ldai
+        lbra     pushax
+
+;
+; handler for case jump inst.
+;
+        .globl  casejump
+casejump:
+;
+; case table after the call to casejmp.  val in AX.
+; table is of the form <addr,val>,<addr,val>,...,0.
+; rts from casejmp for default case, else pop return addr
+; addr and jmp to address
+;
+        sta    case2a+1
+        stx    case2b+1    ; save value
+        pla             ; get return addr
+        sta ptr1
+        pla
+        sta ptr1+1
+case1:
+        ldy     #2      	; first see if at end        
+        lda     (ptr1),y        ; test address byte hi
+        beq     case9   	; yes =>
+
+case2:          ; test case value against this value
+        ldy     #4
+        lda     (ptr1),y        ; value hi
+case2b  cmp     #0    		; match switchval hi?
+        bne     case3   	; no match, try next
+        dey
+        lda     (ptr1),y        ; val lo
+case2a  cmp     #0     		; match switchval lo?
+        bne     case3
+; match!
+        dey             	; point at hi byte of addr
+        lda     (ptr1),y
+        tax
+        dey
+        lda 	(ptr1),y
+        sta 	ptr1
+        stx 	ptr1+1
+        jmp 	(ptr1)
+        
+;>        sta     ptr2+1  	; stuff in ptr to jump thru
+;>        dey
+;>        lda     (ptr1),y
+;>        sta     ptr2
+;>        jmp     (ptr2)  	; go there
+
+case3:          ; no match, try next case clause
+        clc
+        lda     ptr1    ; get case ptr
+        adc     #4      ; add 4
+        sta     ptr1    ; put it back
+        bcc     case1
+        inc     ptr1+1  ; deal with carry
+        lbra     case1   ; and go try again
+
+case9:        
+; oops, we're out of cases.  compute return address; 2 + ptr1
+        clc
+        lda     ptr1    ; get lo byte
+        adc     #3      ; inc past the 0
+        sta     ptr1
+        bcc     *+4     ; deal with carry
+        inc     ptr1+1
+        jmp     (ptr1)  ; go there
+;
+; these routines are inlined (42BS)
+;
+
+;
+; save and restore AX
+;
+;>        .globl  saveax
+;>saveax:
+;>        sta     svax
+;>        stx     svax+1
+;>        rts
+;>        .globl  restax
+;>restax:
+;>        lda     svax
+;>        ldx     svax+1
+;>        lbra     tstax
+
+	global mulaxy
+mulaxy
+	php		; 0912
+	sei		; 0912
+	pha
+	lda __sprsys
+	ora #$80
+	sta $fc92
+	pla
+	
+	sty $fc52
+	stz $fc53
+	sta $fc54
+	stx $fc55
+	ldy __sprsys
+mulaxy1
+	bit $fc92
+	bmi mulaxy1
+	lda $fc60
+	ldx $fc61
+	sty $fc92
+	plp		; 0912
+	lbra tstax
+	
+        .globl  multos
+multos:
+	php
+	sei
+	
+        tay                 ; save A
+        lda __sprsys
+        ora #$80
+        sta $fc92       ; do it signed
+
+        sty $fc52
+        stx $fc53       ; first int
+        jsr popax
+        sta $fc54
+        stx $fc55       ; last high-byte starts copro
+smul1:
+        lda $fc92
+        bmi smul1
+        lda __sprsys
+        sta $fc92
+        lda $fc60
+        ldx $fc61
+        
+        plp
+        
+        lbra tstax
+;
+; signed divide (uses Suzy)
+;
+	global divaxy
+divaxy:
+	php
+	sei
+	
+	sty $fc56
+	stz $fc57
+	stz tmp1
+	bra divaxy1
+	
+        .globl  divtos
+divtos:
+	php
+	sei
+	
+        stz     tmp1
+        jsr     tstax   ; AX zero?
+        beq     xsdiv0a  ; yup, give up now
+        bpl     xsdiv1  ; positive, it's ok
+        inc     tmp1
+        jsr     negax   ; negate it
+xsdiv1:
+        sta     $fc56
+        stx     $fc57   ; divider
+
+        jsr popax
+divaxy1        
+        jsr     tstax   ; what sort of value?
+        beq     xsdiv0  ; zero, we lose
+        bpl     xsdiv2  ; positive, it's ok
+        dec     tmp1
+        jsr     negax   ; negate it
+xsdiv2:
+        sta     $fc60
+        stx     $fc61
+        stz     $fc62
+        stz     $fc63
+xsdiv3:
+        lda $fc92
+        bmi xsdiv3
+
+        lda     $fc52
+        ldx     $fc53
+
+        ldy     tmp1      ; sign ?
+        beq     xsdiv5
+        jsr     negax
+xsdiv5:
+	plp		; 0912
+        lbra tstax
+xsdiv0a:
+	jsr incsp2	; discard operand
+xsdiv0:         ; error return
+xmodtos0:
+	plp		; 0912
+        lda     #0
+        tax
+        rts
+
+;
+; signed MODulo (not Suzy)
+;
+
+; Suzy-Divide give either remainder or twice remainder
+; therefor doin' it by hand.
+;
+	global modaxy
+modaxy
+	php
+	sei
+	
+	sty ptr1
+	stz ptr1+1
+	stz tmp3
+	stz tmp4
+	sta sreg
+	stx sreg+1
+	bra modaxy1
+	
+;>        global modtoa
+;>modtoa
+;>        ldx #0  
+        .globl  modtos
+
+modtos:
+	php
+	sei
+	
+	jsr popsreg
+
+xmodtos:                ;     result in AX, remainder in SREG
+        stz     tmp3    ; zap denominator-negative flag
+        stz     tmp4    ; and numerator-negative flag
+        jsr     tstax   ; AX zero?
+        beq     xmodtos0        ; yup, give up now
+        bpl     xmodtos1        ; positive, it's ok
+        inc     tmp3    ; denom negative
+        jsr     negax   ; negate it
+xmodtos1:
+        sta     ptr1    ; use tmpptr1 and SREG as regs
+        stx     ptr1+1
+        lda     sreg
+        ldx     sreg+1  ; load up sreg
+modaxy1
+        jsr     tstax   ; what sort of value?
+        beq     xmodtos0          ; zero, we lose
+        bpl     xmodtos2          ; positive, it's ok
+        inc     tmp4    ; set numerator-negative flag
+        jsr     negax   ; negate it
+        sta     sreg
+        stx     sreg+1
+xmodtos2:
+        ldy     #1      ; bit mask
+        sty     ptr2
+        stz     ptr2+1
+        stz     tmp1    ; use tmp1 as accum
+        stz     tmp1+1
+;
+; shift ptr1 and ptr2 left until ptr1 is greater than SREG,
+; then shift right until it's <=
+;
+
+xmodtos3:
+        lda     ptr1+1  ; compare
+        cmp     sreg+1  ;  p1 to sreg
+        beq     xmodtos3a               ; eq, try second byte
+        bcs     xmodtos4          ; >, we're done shifting left
+        bra     xmodtos3b               ; <, shift left
+xmodtos3a:
+        ldx     ptr1
+        cpx     sreg    ; compare lo byte
+        beq     xmodtos5          ; =, skip the right shift
+        bcs     xmodtos4          ; >, go right one
+xmodtos3b:
+        asl     ptr1    ; shift p1 left 1
+        rol     ptr1+1
+        asl     ptr2    ; shift bitmask left one
+        rol     ptr2+1
+        lbra     xmodtos3          ; round again.
+
+xmodtos4:                 ; shift p1, mask right one
+        lsr     ptr1+1  ; shift p1
+        ror     ptr1
+        lsr     ptr2+1  ; shift bitmask
+        ror     ptr2
+        bcs     xmodtos7a               ; bit fell out end?!? ok, do exit processing
+;
+; whew! tmpptr1 (the divisor register) and tmpptr2 (the quotient bitmask)
+; are now all set to enter the divide loop
+;
+xmodtos5:                 ; compare sreg to p1.  if >=, subtract
+        lda     sreg+1
+        cmp     ptr1+1
+        beq     xmodtos5a               ; try lo byte
+        bcs     xmodtos6          ; >, go subtract
+        bcc     xmodtos7          ; <, go shift right
+xmodtos5a:
+        lda     sreg
+        cmp     ptr1
+        bcc     xmodtos7          ; < go shift right
+xmodtos6:                 ; subtract p1 from sreg, and set bit in accum
+        sec
+        lda     sreg    ; subtract
+        sbc     ptr1    ;  p1
+        sta     sreg    ;   from
+        lda     sreg+1  ;       sreg
+        sbc     ptr1+1
+        sta     sreg+1
+
+        lda     ptr2    ; or
+        ora     tmp1    ;  bitmask
+        sta     tmp1    ;   into
+        lda     ptr2+1  ;       quotient
+        ora     tmp1+1
+        sta     tmp1+1
+xmodtos7:
+        lsr     ptr1+1  ; shift p1 right
+        ror     ptr1
+        lsr     ptr2+1
+        ror     ptr2
+        bcc     xmodtos5          ; if no carry, round again
+xmodtos7a:
+;
+; done!
+;
+        lda     sreg
+        ldx     sreg+1
+        ldy     tmp4    ; negate remainder?
+        beq     xmodtos8
+        jsr     negax
+xmodtos8:
+	plp
+        lbra tstax
+*
+* set up Mikey and Suzy
+*
+mikey_suzy:
+        ldx #14
+mloop:
+        ldy MikeyInitReg,x
+        lda MikeyInitData,x
+        sta $fd00,y
+        dex
+        bpl mloop
+; these are RAM-shadows of read-only-registers
+
+        lda #$1b
+        sta __iodat
+        lda #$1a
+        sta __iodir
+        lda #$d
+        sta __viddma
+*
+* Suzy
+*
+        ldx #6
+sloop:
+        ldy SuzyInitReg,x
+        lda SuzyInitData,x
+        sta $fc00,y
+        dex
+        bpl sloop
+
+        lda #$24
+        sta __sprsys
+        rts
+
+        	data
+		global SuzyInitReg
+        	
+SuzyInitReg   .byte $28,$2a,$04,$06,$92,$83,$90
+SuzyInitData  .byte $7f,$7f,$00,$00,$24,$f3,$01
+********************
+MikeyInitReg  .byte $00,$01,$08,$09,$20,$28,$30,$38,$44,$50,$8a,$8b,$8c,$92,$93
+MikeyInitData .byte $9e,$18,$68,$1f,$00,$00,$00,$00,$00,$ff,$1A,$1b,$04,$0D,$29

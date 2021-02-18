@@ -1,0 +1,67 @@
+-*- Text -*-
+
+			Link-65 preliminary doc.
+
+    Link-65 is a linker for relocatable object modules.  It inputs object
+files and outputs an executable image.  
+
+Link-65 accepts as input a series of names and switches.
+
+Valid switches:
+
+	-O	Specify output file, as "-O FOO.COM".
+
+	-B	Specify exec base address, as -B2800.  Number is
+		a hex constant.  Default value is #x2000.
+	
+	-M	Write a map file.  A bunch of information gets 
+		dumped to the map, like how big each oject module 
+		ended up in the executable, and what addresses of 
+		global symbols etc.  The name of the map file is
+		the name of the output file, with the extension
+		.MAP, ie "-M -O FOO.COM" will output the executable
+		in FOO.COM, and the map in FOO.MAP.
+
+	-V	Verbose.  Turns on printing of various debug
+		info while the link proceeds.
+
+Anything that's not a switch is expected to be a file name.  All files
+are linked together to produce the executable.  Ex:  You could say
+something like:
+
+LINK65 -m -o foo.com start.obj foo.obj
+
+to link START.OBJ and FOO.OBJ together to form FOO.COM, and write the
+linker map to FOO.MAP.
+
+Link-65 knows how to search object libraries (.OLB files) to resolve
+references to undefined symbols.  This is especially useful when
+linking C programs, as they'll typically reference all kinds of canned
+library routines.  Libraries are specified as files like anything
+else.  Ex:
+
+LINK65 -o hello.com runtime.obj hello.obj c.olb
+
+Runtime.obj is the C startup/runtime module, hello.obj is the main
+program, and c.olb is the C library.
+
+If a filespec contains a leading at-sign ('@') it is interpreted as an
+indirect command file.  That means it's expected to contain a list of
+names of the files that are really supposed to be linked.  Using this
+scheme, the above example would look like this:
+
+LINK65 -o hello.com @hello.lnk
+
+where hello.lnk contains the following 3 lines:
+
+runtime.obj
+hello.obj
+c.olb
+
+
+Case does not matter in command line args; ie -v is equivalent to -V.
+As usual, Link-65 will prompt for a command line if there isn't one,
+either because you didn't type it, or 'cause you're running on some
+system that doesn't do command lines, like DOS 2.5.
+
+

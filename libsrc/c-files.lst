@@ -1,0 +1,7 @@
+atoi.c     fopen.c    isascii.c  ispunct.c  itou.c     reverse.c  xtoi.c 
+atoib.c    fprintf.c  isatty.c   isspace.c  itox.c     startup.c  
+delete.c   fputs.c    iscntrl.c  isupper.c  open.c     strcat.c   
+dtoi.c     fread.c    iscons.c   isxdigit.c otoi.c     strcmp.c   
+fclose.c   fwrite.c   isgraph.c  itoab.c    pmalloc.c  time.c     
+fgets.c    gets.c     islower.c  itod.c     readargs.c toascii.c  
+fname.c    isalnum.c  isprint.c  itoo.c     rename.c   utoi.c     

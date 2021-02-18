@@ -1,0 +1,56 @@
+-*- Text -*-
+
+			Getting started using CC65.
+
+CC65, RA65, LINK65, and LIBR65, along with the assorted runtime
+libraries and things, comprise everything you should need to compile
+and run C programs on your Atari 8-bit computer.
+
+Basically, the sequence of things you do to compile a and run a C
+program is as follows:
+
+1:  Use CC65 to compile your C source into assembler language
+2:  Use RA65 assemble the results into an object file
+3:  Use LINK65 to link your object file with the C runtime stuff,
+    to produce an executable.
+
+In the CC65 distribution, you should find the canonical test program,
+hello.c.  You should also find the C runtim stuff, runtime.obj and
+c.olb.  Here's what you do to compile up hello.c and run it.
+
+Put hello.c, runtime.obj, and c.olb on drive 1 of your system, or, if
+you're using something like Spartados that supports default devices,
+put those files on whatever device you're using as a default.
+
+Run CC65.COM.  When it starts, it will prompt with CC65>.  Type the line
+
+-V HELLO.C
+
+at the prompt and hit return.
+
+CC65 will compile hello.c, producing hello.m65.
+
+Run RA65.COM.  When it starts, it will prompt with RA65>.  Type the line
+
+HELLO.M65
+
+at the prompt and hit return.
+
+RA65 will assemble hello.m65, producing hello.obj.  At this point you
+can delete hello.m65 if you want.
+
+Run LINK65.COM.  When it starts, it will prompt with LINK65>.  Type the line
+
+-O HELLO.COM RUNTIME.OBJ HELLO.OBJ C.OLB
+
+at the prompt and hit return.
+
+Link65 will link hello.obj with the C runtime stuff, and produce an
+executable program called hello.com.
+
+You're done!  You can now run hello.com, to see the canonical message.
+
+The procedures for building bigger programs are much the same.  If
+you've got multiple source files, you'll compile and assemble each of
+them separately, then feed all of them to LINK65, where you typed
+HELLO.OBJ in the example above.  See the link65.doc for more details.

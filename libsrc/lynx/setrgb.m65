@@ -1,0 +1,18 @@
+;
+;  set color palette
+;
+;   C-def: SetRGB(char * palette)
+;
+		xref popax
+
+                global _SetRGB
+_SetRGB:
+                jsr popax
+                sta tmp1
+                stx tmp1+1
+                ldy #31
+_SetRGB1:         lda (tmp1),y
+                  sta $fda0,y
+                  dey
+                bpl _SetRGB1
+                rts

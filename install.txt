@@ -1,0 +1,48 @@
+*********************
+* cc65 installation *
+*********************
+
+__DOS__
+
+1) unzip the archive.
+   Copy the archive into the desired directory:e.g. \lynx.
+   Than unpack it. With
+   
+  c:\lynx\>unzip -d cc65src
+
+  or
+
+  MyMachine:~\lynx\ #unzip -d cc65src
+
+or for binarie-updates
+
+  c:\lynx\>unzip -d cc65update
+  
+  or
+
+  MyMachine:~\lynx\ #unzip -d cc65update
+  
+2) set enviroment variables (best in .cshrc or AUTOEXEC.BAT)
+  
+  SET CC65INCLUDE = c:\lynx\cc65\include
+  SET CC65LIB = c:\lynx\cc65\lib
+
+  or
+
+  set CC65INCLUDE = ~\lynx\cc65\include
+  set CC65LIB = ~\lynx\cc65\lib
+
+NOTE: Captial letters !!
+
+3) Add the cc65-bin directory to your path
+
+  PATH = %PATH%;c:\lynx\cc65\bin
+
+  or
+
+  set path = (. $path ~\lynx\cc65\bin .)
+
+4) If you don't have it : Get a make-utility.
+(I recommend gmake also available for DOS (DJGPP !)
+
+

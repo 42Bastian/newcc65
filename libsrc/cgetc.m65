@@ -1,0 +1,33 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; cgetc(iocb)
+;
+	.globl	_fgetc
+_fgetc:
+	.globl	_cgetc
+_cgetc:
+	jsr	popax		; get iocb
+	tax
+	lda	#0
+	sta	icbll,x
+	sta	icblh,x
+	sta	icbal,x
+	sta	icbah,x
+	lda	#getchr
+	sta	iccom,x
+	jsr	ciov
+	bpl	getc9
+	cpy	#eoferr		; EOF?
+	beq	getceof
+	jmp	ioreturn	; go return error
+getc9:
+	ldx	#0		; return hi byte 0
+	rts
+getceof:
+	lda	#$FF
+	tax
+	rts
+;

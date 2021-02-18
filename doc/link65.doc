@@ -1,0 +1,62 @@
+-*- Text -*-
+
+			Link-65 preliminary doc.
+
+    Link-65 is a linker for relocatable object modules.  It inputs object
+files and outputs an executable image.  
+
+Link-65 accepts as input a series of names and switches.
+
+Valid switches:
+
+	-o	Specify output file, as "-o FOO.COM".
+
+	-b	Specify exec base address, as -b2800.  Number is
+		a hex constant.  Default value is #x200.
+	-B	Specifiy BSS start, default is behind Data.
+			Stack is always behind BSS !
+
+        -s      Specify the stack-size. Note this value is decimal.
+
+	-z      Start of BSSZP (0x80 is default)
+	
+	-m	Write a map file.  A bunch of information gets 
+		dumped to the map, like how big each oject module 
+		ended up in the executable, and what addresses of 
+		global symbols etc.  The name of the map file is
+		the name of the output file, with the extension
+		.MAP, ie "-M -O FOO.COM" will output the executable
+		in FOO.COM, and the map in FOO.MAP.
+
+        -r      Don't link runtime.run
+
+	-v	Verbose.  Turns on printing of various debug
+		info while the link proceeds.
+
+Anything that's not a switch is expected to be a file name.  All files
+are linked together to produce the executable.  Ex:  You could say
+something like:
+
+LINK65 -m -o foo.com start.obj foo.obj
+
+to link START.OBJ and FOO.OBJ together to form FOO.COM, and write the
+linker map to FOO.MAP.
+
+Link-65 knows how to search object libraries (.OLB files) to resolve
+references to undefined symbols.  This is especially useful when
+linking C programs, as they'll typically reference all kinds of canned
+library routines.  Libraries are specified as files like anything
+else.  Ex:
+
+LINK65 -o hello.com hello.obj c.olb
+
+Note: By default link65 links runtime.run to you program.
+      This file and all libraries are searched in the directory
+      specfied by CC65LIB.
+
+Runtime.run is the C startup/runtime module, hello.obj is the main
+program, and c.olb is the C library.
+
+
+Case does not matter in command line args.
+

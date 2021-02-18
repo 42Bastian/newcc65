@@ -1,0 +1,39 @@
+;
+; bcopy(p1, p2, nbytes)
+;
+
+  xref popax
+
+	.globl	_bcopy
+_bcopy:
+	jsr	popax		; get nbytes
+	sta	tmp1
+	phx
+	jsr	popax		; p2
+	sta	ptr2
+	stx	ptr2+1
+	jsr	popax		; p1
+	sta	ptr1
+	stx	ptr1+1
+	ldy	#0		; set up to move 256	
+	plx			; nbytes^
+	beq	bc3
+bc2:
+	lda	(ptr1),y	; get a byte
+	sta	(ptr2),y	; store it
+	iny
+	bne	bc2
+	inc	ptr1+1		; bump ptrs
+	inc	ptr2+1
+	dex
+	bne	bc2		; do another block
+bc3:
+	cpy	tmp1		; done yet?
+	beq	bc5		; yup, exit
+	lda	(ptr1),y	; get a byte
+	sta	(ptr2),y	; store it
+	iny
+	bne	bc3
+bc5:
+	rts			; done!
+;

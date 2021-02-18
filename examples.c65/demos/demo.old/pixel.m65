@@ -1,0 +1,59 @@
+vidbasl	=	$26
+	.globl	_readpixel
+_readpixel:
+	jsr popax		; get y value
+	tay
+	lda	_scanbasl,y
+	sta	vidbasl
+	lda	_scanbash,y
+	sta	vidbasl+1
+	jsr popax		; get x value
+	lsr	a		; calculate byte position
+	tay
+	bcc	rphigh
+	lda	(vidbasl),y
+	and	#$0f
+	ldx	#$00
+	jmp	tstax
+rphigh:	lda	(vidbasl),y
+	lsr	a
+	lsr	a
+	lsr	a
+	lsr	a
+	ldx	#$00
+	jmp	tstax
+	
+	.globl 	_plot
+_plot:
+	jsr popax		; fetch color from stack
+	and	#$0f
+	sta	color
+	jsr popax		; get y value
+	tay
+	lda	_scanbasl,y
+	sta	vidbasl
+	lda	_scanbash,y
+	sta	vidbasl+1
+	jsr popax		; get x value
+	lsr	a	; calculate byte position
+	tay
+	bcc	plothigh
+	lda	(vidbasl),y
+	and	#$f0
+	ora	color
+	sta	(vidbasl),y
+	rts
+plothigh:
+	lda	color
+	asl	a
+	asl	a
+	asl	a
+	asl	a
+	sta	color
+	lda	(vidbasl),y
+	and	#$0f
+	ora	color
+	sta	(vidbasl),y
+	rts
+color:
+	.byte	0

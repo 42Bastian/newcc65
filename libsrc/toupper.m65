@@ -1,0 +1,11 @@
+	.globl	_toupper
+_toupper:
+	jsr	popax		; get the char
+	cmp	#'a		; < 'a'?
+	bcc	toupper9	; yup, skip it
+	cmp	#'z+1		; > 'z ?
+	bcs	toupper9
+	sec
+	sbc	#$20
+toupper9:
+	rts

@@ -1,0 +1,38 @@
+;
+; c: Flip()
+; extern char * ScreenBuffer;
+;
+; Switch right/left
+;
+                global _Flip
+
+		xref _viddma,_sprsys
+    xrefzp __viddma,__sprsys
+		xrefzp _ScreenBuffer,_RenderBuffer
+		
+                
+_Flip:
+                lda __sprsys    ; load from RAM-shadow
+                eor #8
+                sta __sprsys
+                sta _sprsys
+
+                lda __viddma
+                eor #2
+                sta __viddma
+                sta _viddma
+		ldy _ScreenBuffer
+		ldx _ScreenBuffer+1
+                and #2
+                beq _Flip1
+                  clc
+		  tya
+                  adc #<(8159)
+                  tay
+                  txa
+                  adc #>(8159)
+                  tax
+_Flip1:
+                sty $fd94
+                stx $fd95
+                rts

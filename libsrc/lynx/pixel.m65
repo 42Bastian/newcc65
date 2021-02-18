@@ -1,0 +1,82 @@
+;
+; C: void SetPixel(int x,int y,char col)
+;    char GetPixel(char x,char y)
+;
+        global _SetPixel
+        global _GetPixel
+
+	xref DrawSprite,popax
+	xrefzp _ScreenBuffer
+	
+_SetPixel:
+        lda (sp)        ; get color
+        and #$f
+        sta plot_scbcol
+        ldy #2
+        lda (sp),y      ; get y
+        sta plot_scby
+        iny
+        lda (sp),y
+        sta plot_scby+1
+        iny
+        lda (sp),y     ; get x
+        sta plot_scbx
+        iny
+        lda (sp),y
+        sta plot_scbx+1
+
+        sec
+        tya
+        adc sp
+        sta sp
+        bcc _a1
+         inc sp+1
+_a1:
+        ldax #plot_scb
+        jmp DrawSprite
+plot_scb:
+        dc.b $c0,$90,$20
+        dc.w 0,plot_scbdata
+plot_scbx:
+        dc.w 0
+plot_scby:
+        dc.w 0 
+        dc.w $100,$100
+plot_scbcol:
+        dc.b 0
+plot_scbdata:
+        dc.b $2,$10,0
+
+_GetPixel:
+        jsr popax
+        sta $fc52
+        stz $fc53
+        lda #80
+        sta $fc54
+        stz $fc55
+
+        jsr popax
+        lsr A
+        php             ; save C => even/odd pixel
+        tay             ; y = byte-position
+
+	clc
+        lda _ScreenBuffer
+        adc $fc60
+        sta ptr1
+        lda _ScreenBuffer+1
+        adc $fc61
+        sta ptr1+1
+
+        ldx #0
+        lda (ptr1),y
+        plp
+        bcc _GetPixel1
+        and #$f
+        rts
+_GetPixel1:
+        lsr A
+        lsr A
+        lsr A
+        lsr A
+        rts

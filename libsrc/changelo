@@ -1,0 +1,8 @@
+    Nov 18 22:29:40 1989    (Jrd at local)
+
+	* runtime.m65: Add new routines:
+	ldaui:  load A (unsigned) from (AX)
+	ldauidx: .
+	ldauysp: .
+
+

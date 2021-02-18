@@ -1,0 +1,26 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; read(iocb, buf, size)->real size read
+;
+	.globl	_read
+_read:
+	jsr	__rwsetup	; do common setup for read and write
+	beq	read9		; if size 0, it's a no-op
+	lda	#getchr		; iocb command code
+	sta	iccom,x
+	jsr	ciov		; read it
+	bpl	read9
+	cpy	#$88		; eof is treated specially
+	beq	read9
+	jmp	ioreturn	; do common error stuff
+read9:
+	lda	icbll,x		; buf len lo
+	pha			; save it
+	lda	icblh,x		; get buf len hi
+	tax			;  in x	
+	pla			; get lo byte back
+	rts
+;

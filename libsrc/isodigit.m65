@@ -1,0 +1,13 @@
+; isodigit(c) -- octal-p
+	.globl	_isodigit
+_isodigit:
+	jsr	popax		; get the char
+	cmp	#'0'		; < '0'?
+	bcc	ret0		; less, return 0
+	cmp	#'8'		; >= '8'?
+	bcs	ret0		; yes, return 0
+	lda	#1		; no, return a 1
+	rts
+ret0:
+	txa
+	rts

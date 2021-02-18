@@ -1,0 +1,506 @@
+;
+; defs for atari os.  these defs were stolen from albug's sysmac.sml.
+; this file generates no code, just contains rom locations etc.
+;
+
+;	vector table
+
+editrv	=$e400			;editor
+screnv	=$e410			;television screen
+keybdv	=$e420			;keyboard
+printv	=$e430			;printer
+casetv	=$e440			;cassette
+
+;	jump vector table
+
+diskiv	=$e450			;disk initialization
+dskinv	=$e453			;disk interface
+ciov	=$e456			;cio routine
+siov	=$e459			;sio routine
+setvbv	=$e45c			;set vertical blank vectors
+sysvbv	=$e45f			;system vertical blank routine
+xitvbv	=$e462			;exit vertical blank routine
+sioinv	=$e465			;sio init
+sendev	=$e468			;send enable routine
+intinv	=$e46b			;interrupt handler init
+cioinv	=$e46e			;cio init
+blkbdv	=$e471			;blackboard mode
+warmsv	=$e474			;warm start entry point
+coldsv	=$e477			;cold start entry point
+rblokv	=$e47d			;cassette read block vector
+dsopiv	=$e480			;cassette open for input vector
+
+;	some useful internal routines
+
+;kgetch	=$f6e2			;get char from keyboard only on 800
+eoutch	=$f6a4			;output char to screen
+putlin	=$f385			;output line to iocb#0
+
+;	command codes for iocb
+
+open	=$03			;open for input/output
+getrec	=$05			;get record (text)
+getchr	=$07			;get character(s)
+putrec	=$09			;put record (text)
+putchr	=$0b			;put character(s)
+close	=$0c			;close device
+statis	=$0d			;status request
+specil	=$0e			;special entry commands
+
+;	special entry commands
+
+drawln	=$11			;draw line
+fillin	=$12			;draw line with right fill
+rename	=$20			;rename disk file
+delete	=$21			;delete disk file
+format	=$22			;format disk
+lockfl	=$23			;lock file (read only)
+unlock	=$24			;unlock file
+point	=$25			;point sector
+note	=$26			;note sector
+
+ccio	=$28			;concurrent i/o mode
+
+iocfre	=$ff			;iocb "free"
+
+;	aux1 values for open
+
+append	=$01			;open for append
+direct	=$02			;open for directory access
+opnin	=$04			;open for input
+opnot	=$08			;open for output
+opnino	=opnin!opnot		;open for input/output
+mxdmod	=$10			;open for mixed mode
+insclr	=$20			;open without clearing screen
+
+; os status codes
+
+succes	=$01			;successful operation
+brkabt	=$80			;(128) break key abort
+prvopn	=$81			;(129) iocb already open
+nondev	=$82			;(130) non-ex device
+wronly	=$83			;(131) iocb opened for write only
+nvalid	=$84			;(132) invalid command
+notopn	=$85			;(133) device or file not open
+badioc	=$86			;(134) invalid iocb number
+rdonly	=$87			;(135) iocb opened for read only
+eoferr	=$88			;(136) end of file
+trnrcd	=$89			;(137) truncated record
+timout	=$8a			;(138) device timeout
+dnack	=$8b			;(139) device does not ack command
+frmerr	=$8c			;(140) serial bus framing error
+crsror	=$8d			;(141) cursor out of range
+ovrrun	=$8e			;(142) serial bus data overrun
+chkerr	=$8f			;(143) serial bus checksum error
+derror	=$90			;(144) device error (operation incomplete)
+badmod	=$91			;(145) bad screen mode number
+fncnot	=$92			;(146) function not in handler
+scrmem	=$93			;(147) insufficient memory for screen mode
+
+;	page 0 locations
+
+linzbs	=$00			;linbug storage
+ 
+;  these locs are not cleared
+
+casini	=$02			;cassette init loc
+ramlo	=$04			;ram pointer for mem test
+tramsz	=$06			;temp loc for ram size
+tstdat	=$07			;ram test data loc
+
+;  cleared on coldstart only
+
+warmst	=$08			;warm start flag
+bootq	=$09			;successful boot flag
+dosvec	=$0a			;dos start vector
+dosini	=$0c			;dos init address
+appmhi	=$0e			;application mem hi limit
+
+;  cleared on cold or warm start
+
+intzbs	=$10			; start of os ram clear loc => $7f
+pokmsk	=$10			;system mask for pokey irq enable
+brkkey	=$11			;break key flag
+rtclok	=$12			;real time clock (60hz or 16.66666 ms)
+				; 3 bytes; hi order, medium, low
+bufadr	=$15			;indirect buffer address reg
+iccomt	=$17			;command for vector handler
+dskfms	=$18			;disk file manager pointer
+dskutl	=$1a			;disk utilities pointer
+ptimot	=$1c			;printer time out register
+pbpnt	=$1d			;print buffer pointer
+pbufsz	=$1e			;print buffer size
+ptemp	=$1f			;temp reg
+ziocb	=$20			;page 0 i/o control block
+iocbsz	=16			;number of bytes / iocb
+maxioc	=8*iocbsz		;length of iocb area
+iocbas	=ziocb
+
+ichidz	=$20			;handler index number ($ff := iocb free)
+icdnoz	=$21			;device number (drive number)
+iccomz	=$22			;command code
+icstaz	=$23			;status of last iocb action
+icbalz	=$24			;buffer address (low)
+icbahz	=$25			;  "	   "	(high)
+icptlz	=$26			;put byte routine address - 1
+icpthz	=$27
+icbllz	=$28			;buffer length (low)
+icblhz	=$29			;  "	   "   (high)
+icax1z	=$2a			;aux info
+icax2z	=$2b
+icsprz	=$2c			;spare bytes (cio local use)
+icidno	=icsprz+2		;iocb lumber * 16
+ciochr	=icsprz+3		;character byte for current operation
+
+osstatus	=$30			;internal status storage
+oschksum	=$31			;checksum (single byte sum with carry)
+bunrlo	=$32			;pointer to data buffer (lo byte)
+bufrhi	=$33			;pointer to data buffer (hi byte)
+bfenlo	=$34			;next byte past end of buffer (lo byte)
+bnenhi	=$35			;next byte past end of buffer (hi byte)
+cretry	=$36			;number of command fram retries
+dretry	=$39			;number of device retries
+bufrfl	=$38			;data buffer full flag
+recvdn	=$39			;receive done flag
+xmtdon	=$3a			;xmit done flag
+chksnt	=$3b			;checksum sent flag
+nocksm	=$3c			;no checksum follows data flag
+
+bptr	=$3d			;buffer pointer (cassette)
+ftype	=$3e			;file type (short irg/long irg)
+feof	=$3f			;end of file flag (cassette)
+freq	=$40			;freq counter for console speaker
+soundr	=$41			;noisy i/o flag. (zero is quiet)
+critic	=$42			;critical code if non-zero)
+
+fmszpg	=$43			;disk file manager system storage (7 bytes)
+
+ckey	=$4a			;set when game start pressed
+cassbt	=$4b			;cassette boot flag
+dstat	=$4c			;display status
+atract	=$4d			;attract mode flag
+drkmsk	=$4e			;dark attract mask
+colrsh	=$4f			;attract color shifter (xor'd with playfield)
+
+tmpchr	=$50			;temp char storage (display handler)
+hold1	=$51			;temp stg (display handler)
+lmargn	=$52			;left margin
+rmargn	=$53			;right margin
+rowcrs	=$54			;cursor counters
+colcrs	=$55
+dindex	=$57			;display index (various quants)
+savmsc	=$58
+oldrow	=$5a			;previous row/col
+oldcol	=$5b
+oldchr	=$5d			;data under cursor
+oldadr	=$5e
+newrow	=$60			;point draws to here
+newcol	=$61
+logcol	=$63			;points at column in logical line
+adress	=$64			;indirect pointer
+mlttmp	=$66			;multiply temp
+opntmp	=mlttmp			;first byte is used in open as temp
+savadr	=$68
+ramtop	=$6a			;ram size defined by power on logic
+bufcnt	=$6b			;buffer count
+bufstr	=$6c			;editor getch pointer
+bitmsk	=$6e			;bit mask
+shfamt	=$6f			;outchr shift
+
+rowac	=$70			;used by "draw"
+colac	=$72
+endpt	=$74
+deltar	=$76
+deltac	=$77
+rowinc	=$79
+colinc	=$7a
+swpflg	=$7b			;non-0 if txt and ram swapped
+holdch	=$7c			;ch before cntl & shft processing in kgetch
+insdat	=$7d			;insert char save
+countr	=$7e			;draw counter
+
+;;;	$80 to $ff are reserved for user applications
+
+;	page 2 locations
+
+intabs	=$200			;interrupt table
+vdslst	=$200			;display list nmi vector
+vprced	=$202			;proceed line irq vector
+vinter	=$204			;interrupt line irq vector
+vbreak	=$206			;"brk" vector
+vkeybd	=$208			;pokey keyboard irq vector
+vserin	=$20a			;pokey serial input ready
+vseror	=$20c			;pokey serial output ready
+vseroc	=$20e			;pokey serial output done
+vtimr1	=$210			;pokey timer 1 irq
+vtimr2	=$212			;pokey timer 2 irq
+vtimr4	=$214			;pokey timer 4 irq (do not use)
+vimirq	=$216			;immediate irq vector
+cdtmv1	=$218			;count down timer 1
+cdtmv2	=$21a			;count down timer 2
+cdtmv3	=$21c			;count down timer 3
+cdtmv4	=$21e			;count down timer 4
+cdtmv5	=$220			;count down timer 5
+vvblki	=$222			;immediate vertical blank nmi vector
+vvblkd	=$224			;deferred vertical blank nmi vector
+cdtma1	=$226			;count down timer 1 jsr address
+cdtma2	=$228			;count down timer 2 jsr address
+cdtmf3	=$22a			;count down timer 3 flag
+srtimr	=$22b			;software repeat timer
+cdtmf4	=$22c			;count down timer 4 flag
+intemp	=$22d			;ian's temp (???)
+cdtmf5	=$22e			;count down timer 5 flag
+sdmctl	=$22f			;save dmactl register
+dmactl	=$d400			; the real dma control reg
+sdlstl	=$230			;save display list (low)
+sdlsth	=$231			;save display list (high)
+sskctl	=$232			;skctl register ram
+
+lpenh	=$234			;light pen horiz value
+lpenv	=$235			;light pen vert value
+				; ($236 - $239 spare)
+cdevic	=$23a			;command frame buffer - device
+ccomnd	=$23b			;command
+caux1	=$23c			;command aux byte 1
+caux2	=$23d			;command aux byte 2
+temp	=$23e			;yes
+errflg	=$23f			;error flag - any device error except timeout
+
+dflags	=$240			;disk flags from sector one
+dbsect	=$241			;number of disk boot sectors
+bootad	=$242			;address for disk boot loader
+coldst	=$244			;coldstart flag (1 = doing coldstart)
+				;($245 spare)
+dsktim	=$246			;disk time out reg
+linbuf	=$247			;char line buffer (40 bytes)
+
+gprior	=$26f			;global priority cell
+paddl0	=$270			;pot 0 shadow
+paddl1	=$271			;pot 1 shadow
+paddl2	=$272			;pot 2 shadow
+paddl3	=$273			;pot 3 shadow
+paddl4	=$274			;pot 4 shadow
+paddl5	=$275			;pot 5 shadow
+paddl6	=$276			;pot 6 shadow
+paddl7	=$277			;pot 7 shadow
+stick0	=$278			;joystick 0 shadow
+stick1	=$279			;joystick 1 shadow
+stick2	=$27a			;joystick 2 shadow
+stick3	=$27b			;joystick 3 shadow
+ptrig0	=$27c			;paddle 0 trigger
+ptrig1	=$27d			;paddle 1 trigger
+ptrig2	=$27e			;paddle 2 trigger
+ptrig3	=$27f			;paddle 3 trigger
+ptrig4	=$280			;paddle 4 trigger
+ptrig5	=$281			;paddle 5 trigger
+ptrig6	=$282			;paddle 6 trigger
+ptrig7	=$283			;paddle 7 trigger
+strig0	=$284			;joystick 0 trigger
+strig1	=$285			;joystick 1 trigger
+strig2	=$286			;joystick 2 trigger
+strig3	=$287			;joystick 3 trigger
+
+cstat	=$288			;(unused)
+wmode	=$289			;r/w flag for cassette
+blim	=$28a			;buffer limit (cassette)
+				;($28b - $28f spare)
+txtrow	=$290			;text rowcrs
+txtcol	=$291			;text rowcol
+tindex	=$293			;text index
+txtmsc	=$294			;fools convrt into new msc
+txtold	=$296			;oldrow & oldcol for text (and then some)
+tmpx1	=$29c
+hold3	=$29d
+subtmp	=$29e
+hold2	=$29f
+dmask	=$2a0
+tmplbt	=$2a1
+osescflg	=$2a2			;escape flag
+tabmap	=$2a3			;tab buffer
+logmap	=$2b2			;logical line start bit map
+invflg	=$2b6			;inverse video flag (atari key)
+filflg	=$2b7			;right fill flag for draw
+tmprow	=$2b8
+tmpcol	=$2b9
+scrflg	=$2bb			;set if scroll occurs
+hold4	=$2bc			;more draw temps
+hold5	=$2bd
+shflok	=$2be			;shift lock key
+botscr	=$2bf			;bottom of screen (24 norm, 4 split)
+
+pcolr0	=$2c0			;p0 color
+pcolr1	=$2c1			;p1 color
+pcolr2	=$2c2			;p2 color
+pcolr3	=$2c3			;p3 color
+color0	=$2c4			;color 0
+color1	=$2c5
+color2	=$2c6
+color3	=$2c7
+color4	=$2c8			;background
+				;($2c9 - $2df spare)
+glbabs	=$2e0			;global variables
+				;($2e0 - $2e3 spare)
+ramsiz	=$2e4			;ram size (hi byte only)
+memtop	=$2e5			;top of available memory
+memlo	=$2e7			;bottom of available memory
+				;($2e9 spare)
+dvstat	=$2ea			;status buffer
+cbaudl	=$2ee			;cassette baud rate (lo byte)
+cbaudh	=$2ef			;   "      "    "   (hi byte)
+crsinh	=$2f0			;cursor inhibit (00 = cursor on)
+keydel	=$2f1			;key delay
+ch1	=$2f2
+chact	=$2f3			;chactl register (shadow)
+chbas	=$2f4			;chbas register (shadow)
+				;($2f5 - $2f9 spare)
+oschar	=$2fa
+atachr	=$2fb			;atascii character
+ch	=$2fc			;global variable for keyboard
+fildat	=$2fd			;right fill data (draw)
+dspflg	=$2fe			;display flag: disp controls if non-zero
+ssflag	=$2ff			;start/stop flag (cntl-1) for paging
+
+;	page 3 locations
+
+dcb	=$300			;device control block
+ddevic	=$300			;bus i.d. number
+dunit	=$301			;unit number
+dcomnd	=$302			;bus command
+dstats	=$303			;command type/status return
+dbuflo	=$304			;data buffer pointer
+dbufhi	=$305			; ...
+dtimlo	=$306			;device time out in 1 sec. units
+dunuse	=$307			;unused
+dbytlo	=$308			;byte count
+dbythi	=$309			; ...
+daux1	=$30a			;command auxillary bytes
+daux2	=$30b			; ...
+
+timer1	=$30c			;initial timer value
+addcor	=$30e			;addition correction
+casflg	=$30f			;cassette mode when set
+timer2	=$310			;final time value (used to compute baud rate)
+temp1	=$312			;temp locations
+temp2	=$314			; ...
+temp3	=$315			; ...
+savio	=$316			;save serial in data port
+timflg	=$317			;time out flag for baud rate correction
+stackp	=$318			;sio stack pointer save loc
+tstat	=$319			;temp status loc
+
+hatabs	=$31a			;handler address table 
+maxdev	=$21			;maximum handler address index
+
+;	iocb offsets 
+
+iocb	=$340			;i/o control blocks
+ichid	=$340			;handler index ($ff = free)
+icdno	=$341			;device number (drive number)
+iccom	=$342			;command code
+icsta	=$343			;status
+icbal	=$344			;buffer address
+icbah	=$345			; ...
+icptl	=$346			;put byte routine address - 1
+icpth	=$347			; ...
+icbll	=$348			;buffer length
+icblh	=$349			; ...
+icax1	=$34a			;auxillary info
+icax2	=$34b			; ...
+icspr	=$34c			;4 spare bytes
+
+prnbuf	=$3c0			;printer buffer
+				;($3ea - $3fc spare)
+
+;	page 4 locations
+
+casbuf	=$3fd			;cassette buffer
+
+; user area starts here and goes to the end of page 5
+
+usarea	=$480
+
+;
+; other random stuff
+;
+consol	=	$d01f		; console switches start, select, option
+;atascii character defs
+
+atclr	=$7d			;clear screen character
+atrub	=$7e			;back space (rubout)
+attab	=$7f			;tab
+ateol	=$9b			;end-of-line
+atdell	=$9c			; delete line
+atbel	=$fd			;console bell
+aturw	=$1c			;up-arrow
+atdrw	=$1d			;down-arrow
+atlrw	=$1e			;left-arrow
+atrrw	=$1f			;right-arrow
+
+; useful values
+
+ledge	=2			;lmargn's initial value
+redge	=39			;rmargn's initial value
+
+;
+; end of sysmac.sml
+;----------------------------------------------------------------
+;
+; defs from sysequ.asm
+;
+;
+;    execute flag defines
+;
+excyes	=	$80	; execute in progress
+excscr	=	$40	; echo excute input to screen
+excnew	=	$10	; execute start up mode
+excsup	=	$20	; cold start exec flag
+;
+; misc address equates
+;
+cpaloc	=	$0a	; pointer to cp/a
+warmst	=	$08	; warm start (0=cold)
+memlo	=	$2e7	; avail mem (low) ptr
+memtop	=	$2e5	; avail mem (high) ptr
+appmhi	=	$0e	; upper limit of application memory
+initadr	=	$2e2	; atari load/init adr
+goadr	=	$2e0	; atari load/go adr
+cartloc	=	$bffa	; cartridge run location
+cio	=	$e456	; cio entry adr
+eol	=	$9b	; end of line char
+;
+;
+;  cp/a function and value displacemsnt
+;     (indirect through cpaloc)
+;           ie. (cpaloc),y
+;
+cpgnfn	=	3	; get next file name
+cpdfdv	=	$07	; default drive (3 bytes)
+cpbufp	=	$0a	; cmd buff next char pointr (1 byte)
+cpexfl	=	$0b	; execute flag
+cpexfn	=	$0c	; execute file name (16 bytes)
+cpexnp	=	$1c	; execute note/point values
+cpfnam	=	$21	; filename buffer
+runloc	=	$3d	; cp/a load/run adr
+cpcmdb	=	$3f	; command buffer (60 bytes)
+;cpcmdgo	=	-6	;  cp subroutine vector
+;
+;----------------------------------------------------------------
+;
+; floating point defs
+;
+fr0	=	$d4		; float reg 0
+fr1	=	$e0		; float reg 1
+flptr	=	$fc		; pointer to a fp num
+inbuff	=	$f3		; pointer to ascii num
+
+ifp	=	$d9aa		; int in fr0 -> float in fr0
+fpi	=	$d9d2		; float in fr0 -> int in fr0
+fasc	=	$d8e6		; fr0 -> (inbuff)
+fmove	=	$ddb6		; fr0 -> fr1
+fadd	=	$da66		; fr0 + fr1 -> fr0
+fsub	=	$da60		; fr0 - fr1 -> fr0
+fmul	=	$dadb		; fr0 * fr1 -> fr0
+fdiv	=	$db28		; fr0 / fr1 -> fr0
+fld1r	=	$dd98		; fr1 <- (xy)
+
+; end of atari.m65

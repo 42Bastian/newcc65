@@ -1,0 +1,57 @@
+;
+; C: void DrawFBox(int x,int y,int w,int h,char c)
+;
+        global _DrawFBox
+
+	xref DrawSprite
+	xrefzp sp
+	
+_DrawFBox:
+                lda (sp)
+                sta box_color
+                ldy #2
+                lda (sp),y
+                sta box_sizey+1
+                iny
+                iny
+                lda (sp),y
+                sta box_sizex+1
+                iny
+                iny
+                lda (sp),y
+                sta box_y
+                iny
+                lda (sp),y
+                sta box_y+1
+                iny
+                lda (sp),y
+                sta box_x
+                iny
+                lda (sp),y
+                sta box_x+1
+
+                sec
+                tya
+                adc sp
+                sta sp
+                bcc l1
+                  inc sp+1
+l1:
+                ldax #box_scb
+                jmp DrawSprite
+
+box_scb:        
+                dc.b $c0,$90,$20
+                dc.w 0,box_data
+box_x:          
+                dc.w 0
+box_y:          
+                dc.w 0
+box_sizex:      
+                dc.w $100
+box_sizey:      
+                dc.w $100
+box_color:      
+                dc.b $00
+box_data:
+                dc.b 2,$10,0

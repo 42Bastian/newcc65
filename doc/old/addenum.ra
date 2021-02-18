@@ -1,0 +1,18 @@
+- ra65 understands all 65SC02 opcodes.
+- new pseudo-opcodes :
+  * 'byte' and 'dc.b'
+  * 'word' and 'dc.w'
+     alternatives for '.byte' or '.word'
+  * '.equ' and 'equ'
+     alternative for '.='
+  * '.ds' and 'ds'
+     alternative for '.blkb'
+  * 'if', 'ifnz','ifne','ifz','if' and 'endif'
+  * 'global'
+     alternative for '.glbl'
+  * 'lbra'
+     lbra is translate either as bra or jmp depending on the distance.
+     
+- identifiers may be 32 chars long (case sensitive)
+
+  

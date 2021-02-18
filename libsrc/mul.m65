@@ -1,0 +1,64 @@
+
+		global _multos
+		
+		
+_multos:
+	jsr popsreg
+_multos1
+	
+        stz           tmp3      ; zap negative flag
+        cpx           #0
+        bpl           xsmul00
+        inc tmp3
+        jsr           negax
+xsmul00        
+        sta           ptr1    		; use sreg and ptr1
+        stx           ptr1+1          	;  as regs
+        lda           sreg
+        ldx           sreg+1
+        bpl           xsmul0
+        dec tmp3
+        jsr           negax
+        sta           sreg
+        stx           sreg+1
+xsmul0:
+        stz           tmp1      ; tmp1/2 as accumulator
+        stz           tmp1+1
+        ldx           #8        ; use A as bit mask against SREG
+xsmul1:
+        lsr           sreg      ; this bit in sreg set?
+        bcc           xsmul2    ; nope, try next
+        jsr           xsmadd    ; add AX val to accum
+xsmul2:
+        asl           ptr1    ; shift AX val left one
+        rol           ptr1+1
+        dex         		; shift bitmask left one
+        bne           xsmul1    ; if bit not off end, keep working on lo byte
+        ldx           #8        ; set up mask for hi byte
+xsmul3:
+        lsr           sreg+1    ; this bit in sreg set?
+        bcc           xsmul4    ; nope, try next
+        jsr           xsmadd    ; add AX val to accum
+xsmul4:
+        asl           ptr1    ; shift AX val left one
+        rol           ptr1+1
+        dex
+        bne           xsmul3    ; if not off end, keep working on hi byte
+        
+        ldx           tmp1+1    ; load up accum
+        lda           tmp1
+        ldy           tmp3      ; negate flag?
+        beq           xsmul9
+        jmp           negax
+xsmul9:
+        jmp tstax             ; done!
+
+xsmadd:                 ; helper fun
+        clc
+        lda           ptr1    ; add AX value
+        adc           tmp1      ;  to accumulator
+        sta           tmp1
+        lda           ptr1+1
+        adc           tmp1+1
+        sta           tmp1+1
+        rts             ; done

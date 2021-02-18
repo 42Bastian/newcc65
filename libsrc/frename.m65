@@ -1,0 +1,36 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; rename file.
+; frename(str);
+; str is already in the form needed by ataridos, ie 
+; "d:foo.bar,baz.txt"
+;
+xcb:
+	.byte	0
+	.globl	_frename
+_frename:
+	jsr	findiocb	; find a free iocb
+	stx	xcb		; save it
+	jsr	popax		; get the name string
+	ldy	xcb
+	sta	icbal,y		; store str\
+	txa
+	sta	icbah,y		; store str^
+	tya
+	tax			; get iocb in x
+	lda	#rename		; get rename opcode
+	sta	iccom,x
+	lda	#0
+	sta	icax1,x
+	sta	icax2,x
+	jsr	ciov
+	bpl	ren0
+	jmp	ioreturn
+ren0:
+	tya
+	ldx	#0
+	rts
+;

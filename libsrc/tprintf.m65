@@ -1,0 +1,164 @@
+;
+; tiny printf etc.
+;
+; utils
+cconout:			; out char in a. bash regs
+	ldx	#0
+	pha			; save the char
+	txa			; get a zero
+	sta	icbal,x		; zap buf addr
+	sta	icbah,x
+	sta	icbll,x		; and buf len
+	sta	icblh,x
+	lda	#putchr		; say put a byte
+	sta	iccom,x
+	pla			; get the byte again
+	jsr	ciov		; go do it
+	rts
+
+pf_incs:			; inc str ptr
+	inc	ptr1
+	beq	*+3
+	rts
+	inc	ptr1+1
+	rts
+
+pf_nxta:			; get next arg
+	sec			; dec arg ptr by 2
+	lda	ptr2
+	sbc	#2
+	sta	ptr2
+	lda	ptr2+1
+	sbc	#0
+	sta	ptr2+1
+	ldy	#1
+	lda	(ptr2),y	; get hi byte
+	tax			;  into x
+	dey
+	lda	(ptr2),y	; get lo byte
+	rts
+
+	.globl	_tprintf	
+_tprintf:
+	sty	argcnt		; save arg count
+	lda	argcnt
+	asl	A		; make an offset
+	clc
+	adc	sp		; compute addr of ctl str + 2
+	sta	ptr2
+	lda	sp+1
+	adc	#0
+	sta	ptr2+1
+;
+	jsr	pf_nxta		; get control string
+	sta	ptr1
+	stx	ptr1+1
+;
+; main loop.
+;
+printf0:
+	ldy	#0
+	lda	(ptr1),y	; get a char
+	bne	*+5
+	jmp	printf9		; eos? go home
+	cmp	#'%		; a percent?
+	bne	printf1		; no, go print it
+	jsr	pf_incs		; bump control string ptr
+	lda	(ptr1),y	; get control char
+;
+; see what we have
+;
+	cmp	#'s		; string?
+	beq	pf_str
+	cmp	#'d		; decimal?
+	beq	pf_dec
+	cmp	#'x		; hex?
+	beq	pf_hex
+	cmp	#'o		; octal?
+	beq	pf_oct
+; more later
+printf1:
+	jsr	cconout		; out the char
+printf2:
+	jsr	pf_incs		; bump control str
+	jmp	printf0		; and go back for more
+pf_str:
+	jsr	pf_nxta		; get next arg
+	sta	ptr3
+	stx	ptr3+1
+pf_str1:
+	ldy	#0
+	lda	(ptr3),y	; get a char
+	beq	printf2		; done, go home
+	inc	ptr3
+	bne	*+4
+	inc	ptr3+1
+	jsr	cconout
+	jmp	pf_str1
+pf_hex:
+	jsr	pf_nxta		; get arg
+	sta	ptr3
+	stx	ptr3+1
+	lda	#4
+	sta	tmp1
+pf_hex1:
+	lda	ptr3+1
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	and	#$0F
+	tax
+	lda	hex,x
+	jsr	cconout
+	dec	tmp1		; dec counter
+	beq	pf_hex9		; done!
+	asl	ptr3
+	rol	ptr3+1
+	asl	ptr3
+	rol	ptr3+1
+	asl	ptr3
+	rol	ptr3+1
+	asl	ptr3
+	rol	ptr3+1
+	jmp	pf_hex1
+pf_hex9:
+	jmp	printf2
+pf_oct:
+	jmp	printf2
+pf_dec:
+	jsr	pf_nxta			; get an arg
+	sta	fr0
+	stx	fr0+1			; set up to floatify
+	cpx	#0			; neg?
+	bpl	pf_dec1
+	jsr	negax
+	sta	fr0			; store it again
+	stx	fr0+1
+	lda	#'-
+	jsr	cconout
+pf_dec1:
+	jsr	ifp
+	jsr	fasc			; ascify it
+	ldy	#0
+	sty	tmp1
+pf_dec2:
+	ldy	tmp1			; get idx
+	lda	(inbuff),y		; get a byte
+	bmi	pf_dec3			; hi bit set? ok, done
+	inc	tmp1
+	jsr	cconout
+	jmp	pf_dec2
+pf_dec3:
+	and	#$7F			; mask it
+	jsr	cconout
+	jmp	printf2
+printf9:
+	lda	argcnt			; get arg count
+	asl	A			; make it a byte count
+	tay
+	jmp	addysp			; pop stack and return
+;	rts
+hex:
+	.byte	"0123456789ABCDEF"
+; that's all

@@ -1,0 +1,610 @@
+
+
+                xrefzp sp,sreg,ptr1,ptr2,ptr3
+                xrefzp tmp1,tmp2,tmp3,tmp4
+                xref runtime_save_size
+;                xrefzp __iodat,__iodir,__viddma,__sprsys
+
+	xref __start
+	xref  _exit
+	xref  incsp2 
+	xref  incsp1
+ 
+	xref  incsp3  
+	xref  incsp4   
+	xref  incsp5   
+	xref  incsp6 
+	xref  incsp7  
+	xref  incsp8   
+	xref  addysp   
+	xref  decsp1
+	xref  decsp3
+	xref  decsp4
+	xref  decsp5
+	xref  decsp6
+	xref  decsp7
+	xref  decsp8
+	xref  subysp   
+	xref  decsp2
+	xref  incax8
+	xref  incax7
+	xref  incax6
+	xref  incax5
+	xref  incax4
+	xref  incax3
+	xref  addaxy
+	xref  indexax   
+	xref  incax2   
+	xref  incax1   
+	
+	xref  decax1   
+	xref  decax2   
+	xref  decax3
+	xref  decax4
+	xref  decax5
+	xref  decax6
+	xref  decax7
+	xref  decax8	
+	xref  ldaxysp  
+	xref  ldaysp   
+	xref  locysp   
+	xref  plocysp  
+	xref  plocidx  
+	xref  pushwidx	 
+	xref  pushbidx	 
+	xref  push0
+	xref  pusha
+	xref  pushax   
+	xref  popax    
+	xref  popsreg  
+	xref  pushwysp	 
+	xref  pushbysp	 
+	xref  staxspidx   
+	xref  staspidx
+	xref  staxysp
+	xref  staysp
+	xref  staxspp 
+	xref  staspp  
+
+	xref  negax    
+	xref  lnegax   
+	xref  complax  
+
+	xref  ldaxidx
+	xref  ldaxi
+	xref  ldauidx
+	xref  ldaui    
+	xref  ldaidx   
+	xref  ldai
+	xref  tstax
+	xref  tsta
+
+	xref  aslax    
+	xref  asltos
+	xref  aslaxy
+	xref  asrax 
+	xref  asrtos
+	xref  asraxy
+	xref  addtos
+	xref  subaxy
+	xref  subtos
+	xref  or_tos
+	xref  xortos
+	xref  andtos
+
+	xref  axzerop
+	xref  toseqax
+	xref  sregeqax	 
+	xref  tosneax
+	xref  sregneax	 
+	xref  tosltax
+	xref  sregltax	 
+	xref  tosultax
+	xref  sregultax   
+	xref  tosleax
+	xref  sregleax	 
+	xref  tosuleax
+	xref  sreguleax   
+	xref  tosgtax
+	xref  sreggtax	 
+	xref  tosugtax
+	xref  sregugtax   
+	xref  tosgeax
+	xref  sreggeax	 
+	xref  tosugeax
+	xref  sregugeax   
+	xref  enterfun0
+	xref  enterfun1
+	xref  enterfun2
+	xref  enterfun3
+	xref  enterfun4
+	xref  enterfun5
+	xref  enterfun
+	xref  exitfun 	 
+	xref  callax
+	xref  swapstk
+	xref  pushwaxi
+	xref  pushbaxi	 
+	xref  casejump
+	xref  mulaxy
+	xref  multos
+	xref  divaxy
+	xref  divtos
+	xref  modaxy
+	xref  modtos
+	xref  _initmikey
+	xref  _initsuzy
+	xref SaveRegs
+	xref RestoreRegs
+_matha	 = 64594
+_mathb	 = 64596
+_mathc	 = 64598
+_mathd	 = 64594
+_mathe	 = 64608
+_mathakku	 = 64620
+_mathrem	 = 64620
+_hoff	 = 64516
+_voff	 = 64518
+_sprbase	 = 64520
+_collbase	 = 64522
+_scbnext	 = 64528
+_colloff	 = 64548
+_sprsys	 = 64658
+_joystick	 = 64688
+_switches	 = 64689
+_cart0	 = 64690
+_timer0	 = 64768
+_hbl_timer	 = 64768
+_timer1	 = 64772
+_timer2	 = 64776
+_vbl_timer	 = 64776
+_timer3	 = 64780
+_timer4	 = 64784
+_uart_timer	 = 64788
+_timer5	 = 64792
+_timer6	 = 64796
+_timer7	 = 64800
+_timer	 = 64768
+_channelA	 = 64800
+_channelB	 = 64808
+_channelC	 = 64816
+_channelD	 = 64824
+_channels	 = 64800
+_attenA	 = 64832
+_attenB	 = 64833
+_attenC	 = 64834
+_attenD	 = 64835
+_atten	 = 64832
+_panning	 = 64836
+_mstereo	 = 64848
+_audin	 = 64902
+_sysctl1	 = 64903
+_mikeyrev	 = 64904
+_mikeysrev	 = 64905
+_iodir	 = 64906
+_iodat	 = 64907
+_serctl	 = 64908
+_serdat	 = 64909
+_sdoneack	 = 64912
+_cpusleep	 = 64913
+_dispctl	 = 64914
+_viddma	 = 64914
+_pkbkup	 = 64915
+_scrbase	 = 64916
+_irqvec	 = 65534
+	bss
+_screen::
+	ds	8160
+	text
+_mathe2	 = 64609
+_iter::
+	jsr	enterfun
+	bsszp
+L2:
+	ds	1
+	text
+	bsszp
+L3:
+	ds	2
+	text
+	bsszp
+L4:
+	ds	2
+	text
+	bsszp
+L5:
+	ds	2
+	text
+	bsszp
+L6:
+	ds	2
+	text
+	ldy	#4
+	jsr	ldaxysp
+	sta	L3
+	stx	L3+1
+	ldy	#2
+	jsr	ldaxysp
+	sta	L5
+	stx	L5+1
+	ldax	#15
+	sta	L2
+L7:
+	ldax	L3
+	sta	_matha
+	stx	_matha+1
+	sta	_mathb
+	stx	_mathb+1
+ bit	$fc92
+ bmi *-3
+	ldax	_mathe2
+	sta	L4
+	stx	L4+1
+	ldax	L5
+	sta	_matha
+	stx	_matha+1
+	sta	_mathb
+	stx	_mathb+1
+ bit	$fc92
+ bmi *-3
+	ldax	_mathe2
+	sta	L6
+	stx	L6+1
+	ldax	L4
+	jsr	pushax
+	ldax	L6
+	jsr	addtos
+	jsr	pushax
+	ldax	#1024
+	jsr	tosgtax
+	lbeq	L9	;;; falsejump
+	ldau	L2
+	ldy	#0
+	jmp	exitfun
+L9:
+	ldax	L3
+	sta	_matha
+	stx	_matha+1
+	ldax	L5
+	sta	_mathb
+	stx	_mathb+1
+	ldax	L4
+	jsr	pushax
+	ldax	L6
+	jsr	subtos
+	jsr	pushax
+	ldy	#6
+	jsr	ldaxysp
+	jsr	addtos
+	sta	L3
+	stx	L3+1
+	ldax	_mathe2
+	jsr	aslax
+	jsr	pushax
+	ldy	#4
+	jsr	ldaxysp
+	jsr	addtos
+	sta	L5
+	stx	L5+1
+	ldau	L2
+	jsr	decax1
+	sta	L2
+	lbne	L7
+L8:
+	ldax	#0
+	ldy	#0
+	jmp	exitfun
+	data
+_pal::
+	dc.b	0
+	dc.b	10
+	dc.b	0
+	dc.b	4
+	dc.b	0
+	dc.b	8
+	dc.b	10
+	dc.b	15
+	dc.b	7
+	dc.b	15
+	dc.b	0
+	dc.b	15
+	dc.b	5
+	dc.b	9
+	dc.b	5
+	dc.b	15
+	dc.b	0
+	dc.b	170
+	dc.b	10
+	dc.b	15
+	dc.b	160
+	dc.b	240
+	dc.b	15
+	dc.b	15
+	dc.b	0
+	dc.b	0
+	dc.b	255
+	dc.b	240
+	dc.b	10
+	dc.b	14
+	dc.b	80
+	dc.b	255
+	text
+_main::
+	jsr	enterfun
+	bsszp
+L10:
+	ds	1
+	text
+	bsszp
+L11:
+	ds	1
+	text
+	bsszp
+L12:
+	ds	2
+	text
+	bsszp
+L13:
+	ds	2
+	text
+	bsszp
+L14:
+	ds	2
+	text
+	bsszp
+L15:
+	ds	2
+	text
+	ldy	#0
+	jsr	_InitIRQ
+	lda 	#1
+	jsr	pusha
+	ldy	#1
+	jsr	_InstallUploader
+	cli
+	ldax	#_screen
+	jsr	pushax
+	jsr	push0
+	jsr	push0
+	ldy	#3
+	jsr	_SetBuffers
+	ldau	__sprsys
+	ora	#$80
+	sta	__sprsys
+	sta	_sprsys
+	ldax	#6
+	sta	L15
+	stx	L15+1
+	sta	L14
+	stx	L14+1
+ ldy #31
+ lda _pal,y
+ sta $fda0,y
+ dey
+ bpl *-7
+L16:
+L19:
+	jsr	push0
+	jsr	push0
+	lda 	#160
+	jsr	pusha
+	lda 	#102
+	jsr	pusha
+	jsr	push0
+	ldy	#5
+	jsr	_DrawFBox
+	ldax	#0
+	sta	L11
+	ldax	#-300
+	sta	L13
+	stx	L13+1
+L20:
+	lda 	#102
+	jsr	pusha
+	ldau	L11
+	jsr	tosugtax
+	lbeq	L21	;;; falsejump
+L23:
+	ldax	#0
+	sta	L10
+	ldax	#-600
+	sta	L12
+	stx	L12+1
+L24:
+	lda 	#160
+	jsr	pusha
+	ldau	L10
+	jsr	tosugtax
+	lbeq	L25	;;; falsejump
+L27:
+	lda 	L10
+	jsr	pusha
+	lda 	L11
+	jsr	pusha
+	ldax	L12
+	jsr	pushax
+	ldax	L13
+	jsr	pushax
+	ldy	#2
+	jsr	_iter
+	jsr	pushax
+	ldy	#3
+	jsr	_SetPixel
+L26:
+	ldau	L10
+	ina
+	bne *+3
+	inx
+	sta	L10
+	ldax	L12
+	jsr	pushax
+	ldax	L15
+	jsr	addtos
+	sta	L12
+	stx	L12+1
+	lbra	L24
+L25:
+L22:
+	ldau	L11
+	ina
+	bne *+3
+	inx
+	sta	L11
+	ldax	L13
+	jsr	pushax
+	ldax	L14
+	jsr	addtos
+	sta	L13
+	stx	L13+1
+	lbra	L20
+L21:
+L28:
+	ldau	_joystick
+	jsr	lnegax
+	lbne	L28
+L29:
+	ldax	L14
+	jsr	decax1
+	sta	L14
+	stx	L14+1
+L18:
+	lbra	L16
+L17:
+	ldy	#0
+	jmp	exitfun
+	global	_main
+	global	_pal
+	global	_iter
+	global	_mathe2
+	global	_screen
+	xref	_toupper
+	xref	_tolower
+	xref	_toascii
+	xref	_strcpy
+	xref	_strlen
+	xref	_strcmp
+	xref	_strchr
+	xref	_strcat
+	xref	_reverse
+	xref	_itox
+	xref	_itou
+	xref	_itoo
+	xref	_itod
+	xref	_itoab
+	xref	_itoa
+	xref	_isxdigit
+	xref	_iswhite
+	xref	_isupper
+	xref	_isspace
+	xref	_ispunct
+	xref	_isprint
+	xref	_isodigit
+	xref	_islower
+	xref	_isgraph
+	xref	_isdigit
+	xref	_iscons
+	xref	_iscntrl
+	xref	_isatty
+	xref	_isascii
+	xref	_isalpha
+	xref	_isalnum
+	xref	_memset
+	xref	_bzero
+	xref	_bcopy
+	xref	_xtoi
+	xref	_utoi
+	xref	_otoi
+	xref	_dtoi
+	xref	_atoib
+	xref	_atoi
+	xref	_RenderBuffer
+	xref	_ScreenBuffer
+	xref	_SmpActive
+	xref	_SmpStop
+	xref	_SmpStart
+	xref	_SmpInit
+	xref	_BCDToASCII
+	xref	_BCDSubConst
+	xref	_BCDSub
+	xref	_BCDAddConst
+	xref	_BCDAdd
+	xref	_TextOutExt
+	xref	_TextOut
+	xref	_InstallUploader
+	xref	_random
+	xref	_EE_Erase
+	xref	_EE_Write
+	xref	_EE_Read
+	xref	_DefaultPAL
+	xref	_SetRGB
+	xref	_Flip
+	xref	_SwapBuffers
+	xref	_SetBuffers
+	xref	_DrawSprite
+	xref	_DrawLine
+	xref	_GetPixel
+	xref	_SetPixel
+	xref	_DrawFBox
+	xref	_DeInstallIRQ
+	xref	_InstallIRQ
+	xref	_InitIRQ
+	global	_irqvec
+	global	_scrbase
+	global	_pkbkup
+	global	_viddma
+	global	_dispctl
+	global	_cpusleep
+	global	_sdoneack
+	global	_serdat
+	global	_serctl
+	global	_iodat
+	global	_iodir
+	global	_mikeysrev
+	global	_mikeyrev
+	global	_sysctl1
+	global	_audin
+	global	_mstereo
+	global	_panning
+	global	_atten
+	global	_attenD
+	global	_attenC
+	global	_attenB
+	global	_attenA
+	global	_channels
+	global	_channelD
+	global	_channelC
+	global	_channelB
+	global	_channelA
+	global	_timer
+	global	_timer7
+	global	_timer6
+	global	_timer5
+	global	_uart_timer
+	global	_timer4
+	global	_timer3
+	global	_vbl_timer
+	global	_timer2
+	global	_timer1
+	global	_hbl_timer
+	global	_timer0
+	global	_cart0
+	global	_switches
+	global	_joystick
+	global	_sprsys
+	global	_colloff
+	global	_scbnext
+	global	_collbase
+	global	_sprbase
+	global	_voff
+	global	_hoff
+	global	_mathrem
+	global	_mathakku
+	global	_mathe
+	global	_mathd
+	global	_mathc
+	global	_mathb
+	global	_matha
+	xref	__iodir
+	xref	__iodat
+	xref	__sprsys
+	xref	__viddma

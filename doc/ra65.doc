@@ -1,0 +1,193 @@
+Note :
+This version has been edited to fit to the new cc65.
+The original version is in doc/old
+-*- Text -*-
+
+			A65 preliminary doc
+
+[If anyone can come up with a better name than RA65, please let me
+know...]
+
+    RA65 is the assembler that goes with CC65, although it can just as
+well be used by itself.  RA65 eats 65SC02 assembly-language source
+files, and produces relocatable object files, suitable for linking
+into executables with LINK65.
+
+When you start up RA65, it wants an optional name for the output file,
+optional debugging switches, and any number of input file names.  The
+input files are read in order, and an output file is written.  If no
+output file is specified, the output file name will be the first input
+file name, with .OBJ substituted for whatever extension was there.
+
+Ex:
+
+RA65 foo.m65
+
+assembles foo.m65, producing foo.obj.
+
+RA65 -o foo.obj foo.m65
+
+does the same thing.
+
+RA65 -o foo.obj defs.m65 moredefs.m65 foo.m65
+
+This form is useful when you've got some files of equates or something
+that you want to assemble your code with.
+
+Switches:
+
+	-o	output file name, as described above.
+
+        -s      write symbol-file
+
+        -l      list
+	
+	-v	verbose.  If verbose is turned on, the assembler will
+		print lines to the screen as it assembles them.
+
+        -n      print copyleft-notice
+
+Differences between RA65 and other assemblers for the Atari:
+
+RA65 is NOT the same sort of beast as most other assemblers for Atari
+8-bitters, at least all the ones I've ever seen.  The output of this
+assembler is not an executable image, but a relocatable object module.
+
+[The format of .OBJ files is described in more detail elsewhere]
+
+These files are essentially instructions to the linker about how to
+construct the real executable.  A .OBJ file contains instructions, raw
+data, specialized reference codes (things like "generate a byte that's
+the hi byte of the address of symbol foo") and symbol tables.  The
+symbol table contains both definitions of symbols that are defined in
+this module, as "symbol _BAZ is defined as 27 bytes in from the
+beginning of this module" and references to symbols not defined in
+this module, as "value of symbol _QUUX + 20".
+
+There are some differences in how you use this assembler, compared to
+traditional ones.
+
+  o	No ORG or *= directive.  It's meaningless in this kind of
+	assembler; as the starting address, like all other addresses,
+	is determined at link time, not assemble time.
+
+  o	Undefined symbols.  These are errors in an ordinary assembler,
+	but are not necessarily errors here.  Undefined symbols are
+	assumed to be references to something to be defined elsewhere.
+	Note!  Since the default way to reference a symbol as a 16-bit
+	quantity, addresses on page 0 must be defined properly before
+	you reference them, otherwise they'll error, or at least
+	generate incorrect code.
+
+        Note 2nd: External reference must be made by : XREF label
+
+  o	No symbol for the current PC.  This is really a bug, as it's
+	possible to make it work, I've just never gotten around to it.
+	This means you can't say things like
+	
+	sym	=	*
+	
+	when defining symbols; you should use the 
+	
+	sym:
+	
+	form instead.
+
+  o	Different symbols :
+
+	1) normal symbol : single or no colon at the end.
+Normal:
+	2) global symbol : normal one declared global or one with double-colon
+Global::
+	3) local symbol  : starts with a dot, no colon !
+.local
+	4) local in-macro symbol : starts with dot backslash
+.\i
+
+	Local symbols are valid between globals.
+	Local-macro symbols are valid inside macros
+
+Special ops:
+
+RA65 understands a couple of other things that aren't usually done in
+traditional assemblers.  The following pseudo-ops are used by CC65, in
+particular:
+
+	ldax	#foo		This loads the AX pair with the
+				constant value foo, by generating
+				an lda and an ldx.  It will not
+				work with non-constants.
+
+        ldax    foo             is : lda foo; ldx foo+1
+
+	lbne	labl		This is a long-branch pseudo-op.
+				It generates a bne if the label
+				can be reached that way, otherwise
+				it generates a beq *+5 followed by
+				a jmp to the label.  There are similar 
+				ones for lbeq, lbcc etc.
+
+Other stuff:
+
+RA65 understands the following pseudo-ops:
+
+	.globl	<sym>		Define or reference a global symbol.
+	global  <sym>		used as:
+				
+					.globl	foo
+        
+        xref    <sym>           Define an external symbol.
+				
+	
+	.word	<values>	Generate one or more 16-bit values.
+	dc.w    <values>	Values can be constants, expressions,
+				symbol references etc.  Values are
+				separated by commas.
+	
+	.byte	<values>	Generate one or more 8-bit values.
+	dc.b	<values>	Similar to above.
+
+	.blkb	n		Generate n bytes of empty space.
+        ds      n
+
+	=			Set the value of a symbol.  Used as:
+
+				foo = 3
+
+	rept <value>		repeats the source between rept/endr
+	endr			<value> times
+
+	macro <sym>		defines a macro <sym>
+	endm
+
+
+	inc@			increment special symbol @
+	dec@			decrement it
+
+		usage: 
+label@	nop
+	inc@
+label@
+		this generate two different labels !
+
+	text			switches to TEXT-segment
+	data			  -"-       DATA-segment
+	bss			  -"-       BSS-segment
+	bsszp			  -"-       BSSZP (zero-page) segment
+
+* MACROs
+
+* parameters :
+\0..\f				macro-parameters 0..15
+				macro-parameters are seperated by 
+				commas and can be empty
+\#				number of parameters passed (including empty ones)
+\?				macro-name
+\^				expansion-counter
+
+
+
+[There's more; finish later]
+
+
+

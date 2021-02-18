@@ -1,0 +1,20 @@
+;
+;   this software is copyright 1989 by john dunning.  see the file
+;   'copyleft.jrd' for the full copyright notice.
+;
+;
+; close all iocbs
+;
+	.globl	_closeall
+_closeall:
+	ldx	#$10
+	lda	#close
+	sta	iccom,x
+	jsr	ciov
+	txa
+	clc
+	adc	#$10
+	tax
+	cpx	#$80
+	bcc	_closeall+2
+	rts

@@ -1,0 +1,116 @@
+
+xsdiv0:         ; error return
+        lda     #0
+        tax
+        rts
+        
+	global _divtos
+_divtos:	
+	jsr popsreg
+xsdiv:                   ;     result in AX, remainder in SREG
+        stz           tmp3      ; zap denominator-negative flag
+        stz           tmp4      ; and numerator-negative flag
+        jsr           tstax           ; AX zero?
+        beq           xsdiv0    ; yup, give up now
+        bpl           xsdiv1    ; positive, it's ok
+        inc           tmp3      ; denom negative
+        jsr           negax           ; negate it
+xsdiv1:
+        sta           ptr1      ; use tmpptr1 and SREG as regs
+        stx           ptr1+1
+        lda           sreg
+        ldx           sreg+1    ; load up sreg
+        jsr           tstax           ; what sort of value?
+        beq           xsdiv0    ; zero, we lose
+        bpl           xsdiv2    ; positive, it's ok
+        inc           tmp4      ; set numerator-negative flag
+        jsr           negax           ; negate it
+        sta           sreg
+        stx           sreg+1
+xsdiv2:
+        ldy           #1        ; bit mask
+        sty           ptr2
+        stz           ptr2+1
+        stz           tmp1      ; use tmp1 as accum
+        stz           tmp1+1
+;
+; shift ptr1 and ptr2 left until ptr1 is greater than SREG,
+; then shift right until it's <=
+;
+xsdiv3:
+        lda           ptr1+1    ; compare
+        cmp           sreg+1    ;  p1 to sreg
+        beq           xsdiv3a   ; eq, try second byte
+        bcs           xsdiv4    ; >, we're done shifting left
+        bcc           xsdiv3b   ; <, shift left
+xsdiv3a:
+        lda           ptr1
+        cmp           sreg      ; compare lo byte
+        beq           xsdiv5    ; =, skip the right shift
+        bcs           xsdiv4    ; >, go right one
+xsdiv3b:
+        asl           ptr1      ; shift p1 left 1
+        rol           ptr1+1
+        asl           ptr2      ; shift bitmask left one
+        rol           ptr2+1
+        lbra     xsdiv3          ; round again.
+xsdiv4:                 ; shift p1, mask right one
+        lsr           ptr1+1    ; shift p1
+        ror           ptr1
+        lsr           ptr2+1    ; shift bitmask
+        ror           ptr2
+        bcs           xsdiv7a   ; bit fell out end?!? ok, do exit processing
+;
+; whew! tmpptr1 (the divisor register) and tmpptr2 (the quotient bitmask)
+; are now all set to enter the divide loop
+;
+xsdiv5:                 ; compare sreg to p1.  if >=, subtract
+        lda           sreg+1
+        cmp           ptr1+1
+        beq           xsdiv5a   ; try lo byte
+        bcs           xsdiv6    ; >, go subtract
+        bcc           xsdiv7    ; <, go shift right
+xsdiv5a:
+        lda           sreg
+        cmp           ptr1
+        bcc           xsdiv7    ; < go shift right
+xsdiv6:                 ; subtract p1 from sreg, and set bit in accum
+        sec
+        lda           sreg      ; subtract
+        sbc           ptr1      ;  p1
+        sta           sreg      ;   from
+        lda           sreg+1    ;    sreg
+        sbc           ptr1+1
+        sta           sreg+1
+        lda           ptr2      ; or
+        ora           tmp1      ;  bitmask
+        sta           tmp1      ;   into
+        lda           ptr2+1    ;    quotient
+        ora           tmp1+1
+        sta           tmp1+1
+xsdiv7:
+        lsr           ptr1+1    ; shift p1 right
+        ror           ptr1
+        lsr           ptr2+1
+        ror           ptr2
+        bcc           xsdiv5    ; if no carry, round again
+xsdiv7a:
+;
+; done!
+;
+        lda           tmp4      ; negate remainder?
+        beq           xsdiv8
+        lda           sreg
+        ldx           sreg+1
+        jsr           negax
+        sta           sreg
+        stx           sreg+1
+xsdiv8:
+        lda           tmp1
+        ldx           tmp1+1
+        ldy           tmp3      ; numerator neg...
+        cpy           tmp4      ; same as denom-neg?
+        beq           xsdiv9    ; yes, skip the negate
+        jmp           negax
+xsdiv9:
+        jmp tstax

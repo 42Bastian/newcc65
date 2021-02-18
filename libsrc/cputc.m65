@@ -1,0 +1,31 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; cputc(ch, iocb)
+;
+	.globl	_fputc
+_fputc:
+	.globl	_cputc
+_cputc:
+	jsr	popax		; get iocb
+	sta	tmp1
+	jsr	popax		; get char
+	ldx	tmp1
+	pha
+	lda	#0
+	sta	icbll,x
+	sta	icblh,x
+	sta	icbal,x
+	sta	icbah,x
+	lda	#putchr
+	sta	iccom,x
+	pla
+	jsr	ciov
+	bpl	putc9
+	jmp	ioreturn	; do common error stuff
+putc9:
+	tya
+	ldx	#0
+	rts

@@ -1,0 +1,52 @@
+; DO, 28.08.1997
+; memset(ptr, char, nbytes)
+;
+
+
+	.globl  _memset
+_memset:
+	jsr	popax		; get nbytes
+	sta	tmp1
+	stx	tmp2
+	jsr	popax           ; get char
+	pha
+	jsr	popax		; get ptr
+	sta	ptr1
+	stx	ptr1+1
+	pla
+	bra	bz1		; we can use the bzero-code for this
+
+
+;
+; bzero(ptr, nbytes)
+;
+	.globl	_bzero
+_bzero:
+	jsr	popax		; get nbytes
+	sta	tmp1
+	stx	tmp2
+	jsr	popax		; get ptr
+	sta	ptr1
+	stx	ptr1+1
+	lda	#0
+bz1:
+	ldy	#0
+	ldx	tmp2		; get nbytes^
+	beq	bz3		; zero, try lo
+bz2:
+	sta	(ptr1),y	; zap a byte
+	iny
+	bne	bz2
+	inc	ptr1+1		; bump ptr^
+	dex			; dec nbytes^
+	bne	bz2		; around again
+bz3:
+	ldx	tmp1
+	beq	bz5
+bz4:    
+	sta	(ptr1),y	; zap a byte
+	iny
+	dex
+	bne	bz4
+bz5:
+	rts

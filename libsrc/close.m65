@@ -1,0 +1,22 @@
+;
+;   this software is copyright 1989 by john dunning.  see the file
+;   'copyleft.jrd' for the full copyright notice.
+;
+;
+; close an iocb
+;
+	.globl	_cclose
+_cclose:
+	.globl	_close
+_close:
+	jsr	popax		; get iocb num
+	tax
+	lda	#close
+	sta	iccom,x
+	jsr	ciov
+	tya
+	bmi	*+5
+	ldx	#0
+	rts
+	ldx	#$ff
+	rts

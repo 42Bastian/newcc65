@@ -1,0 +1,5 @@
+atari.m65    close.m65    getch.m65    isodigit.m65 runtime.m65  toupper.m65 
+bcopy.m65    closeall.m65 global.m65   iswhite.m65  rwcommon.m65 tprintf.m65 
+bzero.m65    cputc.m65    heap.m65     itoa.m65     stdio.m65    write.m65 
+cgetc.m65    fdelete.m65  isalpha.m65  parselin.m65 strchr.m65   
+cgets.m65    frename.m65  isdigit.m65  read.m65     tolower.m65  

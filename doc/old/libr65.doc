@@ -1,0 +1,12 @@
+-*- Text -*-
+
+			Libr-65 preliminary doc
+
+    Libr65 is the object library maintenance utility part of the CC65
+package.  Its mission in life is to build, maintain, list etc
+libraries of object modules.  
+
+Object libraries are useful when building things like C programs, as
+there are all kinds of functions that want to be optionally linked in,
+and keeping track of them all by hand is too big a pain to be
+worthwhile.  See the LINK65 doc for a [brief] explana

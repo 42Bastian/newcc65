@@ -1,0 +1,32 @@
+;
+; strchr(str, chr);
+;
+	.globl	_strchr
+_strchr:
+	jsr	popax		; get char
+	sta	tmp1		; save it
+	jsr	popax		; get ptr
+	sta	ptr1
+	stx	ptr1+1
+	ldy	#0
+strchr1:
+	lda	(ptr1),y	; get a char
+	bne	strchrz
+	ldx	#0		; oops! not found
+	rts
+strchrz:
+	cmp	tmp1		; match?
+	bne	strchr2		; nope, keep searching
+	ldx	ptr1+1		; hi byte of result
+	tya			; compute lo byte
+	clc
+	adc	ptr1
+	bcc	*+3
+	inx
+	jmp	tstax		; return condition codes
+strchr2:
+	iny			; bump index
+	bne	strchr1
+	inc	ptr1+1
+	jmp	strchr1
+

@@ -1,0 +1,51 @@
+Note :
+This version has been edited to fit to the new cc65.
+The original version is in doc/old
+
+-*- Text -*-
+
+			CC65 preliminary doc
+
+    CC65 is a PD C compiler for Atari 8-bit computers.
+
+Using it:
+
+Essentially, all you do to use CC65 is start it up and hand it a file
+name to compile on a command line.
+
+Input files are assumed to be C source.  Extension .C is assumed if
+not specified.
+
+Include files are first searched in the C-source directory, then in
+one defined by the enviroment-variable CC65INCLUDE.
+
+Switches:
+
+	-v	Verbose.  -v once means print function names as
+		they're encountered.  Twice prints source lines
+		as they're read.
+
+	-d	Debug.  Turns on various debugging code.
+
+        -Dmacro Define a macro
+
+        -s      print storage information (for debugging purpose)
+
+        -h      print hash-table statistics (for debugging purpose)
+
+        -C      include source as comment in the output-file
+
+        -I      specify include-directory
+
+        -?      show help
+
+        -N      copyleft-notice
+
+
+CC65 processes a source file and produces a file with the same name,
+and extension .M65, ie if you compile foo.c, you'll get foo.m65.  The
+assembler language produced is suitable for feeding to RA65, although
+you could probably get it to work by defining a couple of macros using
+something like MAC/65.
+
+

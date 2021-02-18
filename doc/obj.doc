@@ -1,0 +1,61 @@
+-*- Text -*-
+
+Relocatable object file format:
+
+Header:
+  #xFDFD
+  identifies this as a relocatable obj file.
+
+Nbytes symbol:
+  word.  Nbytes of symbol table.  Includes 'nsymbols'.
+
+Nbytes segment:
+  word.  N bytes this segment uses.
+
+Nbytes data:
+  word.  N bytes in segment data this object file.
+
+Nsymbols:
+  word.  N symbol structs following.
+
+Symtab:
+  some number of symbol structs.  Each one looks like:
+    namelen:	byte	length of namestring
+    value:	word	symbol value
+    flags:	word	flag bits this sym, one of:
+			abs:	value absolute
+			rel:	value relative to start of module
+
+Data:
+  a bunch of op bytes, followed by data per op.
+
+  ops:
+
+	lit	|0.0.0.n.n.n.n.n|
+		n literal bytes follow.
+
+	rel	|0.0.1.0.0.0.0.0|
+		generate the following word offset by the start address
+		of this segment
+
+	rel-hi	|0.0.1.0.0.0.0.1|
+		generate a byte, the high half of the following
+		word, offset by segment base
+
+	rel-lo	|0.0.1.0.0.0.1.0|
+		generate a byte, the low half of the following
+		word, offset by segment base
+
+	sym	|0.1.s.n.n.n.n.n|
+		if s is clear, sym number is nnnnn, if set, nnnnn is top
+		5 bits, next byte is bottom 8.
+		followed by a word.  Generate the following word
+		offset by the value of symbol n.
+
+	sym-hi	|1.0.s.n.n.n.n.n|
+		Same as above, but generate hi byte of resultant value
+
+	sym-lo	|1.1.s.n.n.n.n.n|
+		Same, but generate lo byte
+
+

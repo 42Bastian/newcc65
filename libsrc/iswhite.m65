@@ -1,0 +1,16 @@
+; iswhite(c) -- whitespace-p
+	.globl	_iswhite
+_iswhite:
+	jsr	popax		; get the char
+	and	#$7F		; mask hi bit
+	beq	ret0
+	cmp	#$21		; <= space?
+	bcc	ret1		; less, return 1
+	cmp	#$7F		; >= rubout?
+	bcs	ret1		; yes, return 1
+ret0:
+	txa			; no, return a 0
+	rts
+ret1:
+	lda	#1
+	rts

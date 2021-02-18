@@ -1,0 +1,24 @@
+
+
+Well, this is the version of cc65 for *nix machines, it seems to work well,
+so far... it has been tested on Linux, BSD, AIX.
+
+intruder@hacktic.nl
+
+--------
+CHANGES:
+
+        - Made the code compile && work under *nix, various things
+	changed && fixed, compiles cleanly without warnings now..
+
+
+	- CC65LIB environment variable added in link65.c
+	Libraries and .obj files will be searched in the current
+	directory first and then the path specified by the CC65LIB var.
+
+	- link65 will now use runtime.obj as runtime, no need to specify
+	it, unless -r is used.
+
+	- link65 will use c.olb as standard library, also no need to specify
+	it..
+

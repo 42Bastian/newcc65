@@ -1,0 +1,110 @@
+;	these two routines provide random numbers
+;	the range on the output is 0..32767
+;	the seed value is anything you can fit into a 16 bit integer
+
+	.globl	_seedrand
+_seedrand:
+	jsr	popax
+	sta	seed0
+	stx	seed0+1
+	stz	seed1
+	stz	seed1+1
+	lda	#$06
+	sta	$fc92		; set lefthanded and unsigned math
+	rts
+seed0:
+	.word	1
+seed1:
+	.word	0
+randtemp0:
+	.word	0
+randtemp1:
+	.word	0
+
+	.globl	_genrand
+_genrand:
+	lda	#$06
+	sta	$fc92		; clear unsafe access bit
+	lda	#$6d
+	sta	$fc52		; D
+	lda	#$4e
+	sta	$fc53		; C
+	lda	seed0
+	sta	$fc54		; B
+	lda	seed0+1
+	sta	$fc55		; A - multiplying now
+genrand0:
+	lda	$fc92
+	bmi	genrand0	; loop until high bit goes low
+	lda	$fc60		; H
+	sta	randtemp0
+	lda	$fc61		; G
+	sta	randtemp0+1
+	lda	$fc62		; F
+	sta	randtemp1
+	lda	$fc63		; E
+	sta	randtemp1+1	; first mult part done
+
+	lda	#$06
+	sta	$fc92		; clear unsafe access bit
+	lda	#$6d
+	sta	$fc52		; D
+	lda	#$4e
+	sta	$fc53		; C
+	lda	seed1
+	sta	$fc54		; B
+	lda	seed1+1
+	sta	$fc55		; A
+genrand1:
+	lda	$fc92
+	bmi	genrand1	; loop until high bit goes low
+	clc
+	lda	$fc60		; H
+	adc	randtemp1
+	sta	randtemp1
+	lda	$fc61		; G
+	adc	randtemp1+1
+	sta	randtemp1+1	; second mult part done
+
+	lda	#$06
+	sta	$fc92		; clear unsafe access bit
+	lda	#$c6
+	sta	$fc52		; D
+	lda	#$41
+	sta	$fc53		; C
+	lda	seed0
+	sta	$fc54		; B
+	lda	seed0+1
+	sta	$fc55		; A
+genrand2:
+	lda	$fc92
+	bmi	genrand2	; loop until high bit goes low
+	clc
+	lda	$fc60		; H
+	adc	randtemp1
+	sta	randtemp1
+	lda	$fc61		; G
+	adc	randtemp1+1
+	sta	randtemp1+1	; third mult part done
+
+	lda	#$06		; clear unsafe access bit
+	sta	$fc92
+	clc			; add constant and copy to seed
+	lda	#$39
+	adc	randtemp0
+	sta	seed0
+	lda	#$30
+	adc	randtemp0+1
+	sta	seed0+1
+	lda	#$00
+	adc	randtemp1
+	sta	seed1
+	lda	#$00
+	adc	randtemp1+1
+	sta	seed1+1
+
+	lda	seed1+1		; get result in AX (A is low, X is high)
+	and	#$7f		; use the upper sixteen bits here.
+	tax
+	lda	seed1
+	jmp	tstax		; do this just in case

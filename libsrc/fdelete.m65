@@ -1,0 +1,34 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; delete file.
+; fdelete(str);
+;
+xcb:
+	.byte	0
+	.globl	_fdelete
+_fdelete:
+	jsr	findiocb	; find a free iocb
+	stx	xcb		; save it
+	jsr	popax		; get the name string
+	ldy	xcb
+	sta	icbal,y		; store str\
+	txa
+	sta	icbah,y		; store str^
+	tya
+	tax			; get iocb in x
+	lda	#delete		; get rename opcode
+	sta	iccom,x
+	lda	#0
+	sta	icax1,x
+	sta	icax2,x
+	jsr	ciov
+	bpl	del0
+	jmp	ioreturn	; common error handling code
+del0:
+	tya
+	ldx	#0
+	rts
+;

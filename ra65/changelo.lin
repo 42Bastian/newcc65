@@ -1,0 +1,21 @@
+changes-log for link65
+
+* 1997/29/01
+1) removed O_BINARY as mode for open (gcc doesn't know it)
+2) -b now correct
+3) runtime-name now : runtime.run
+4) Added new file header: either the old one or BLL
+5) removed the XL-stuff at the file-end
+* 1997/xx/04
+1)link65 compiles now without any warning, because
+  now all functions are prtotyped.
+2)change int into short or USHORT to prevent conflicts on systems where
+  ptr and int are of different size (like 16bit DOS)
+* 1997/04/05
+1) had to rechange USHORT to int
+* 1997/06/05
+1) Returns with error-code if symbols are undefined
+* 1997/07/08
+1) Added support for more then one library.
+   (Simply an index was missing , but took me hours to find it.)
+   

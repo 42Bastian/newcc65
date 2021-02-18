@@ -1,0 +1,166 @@
+*************************************************
+* BCD - functions BCDAdd, BCDSub and BCDToASCII *
+*************************************************
+; exported functions,labels:
+                global _BCDAdd
+                global _BCDAddConst
+                global _BCDSub
+                global _BCDSubConst
+                global _BCDToASCII
+
+		xref popax,tstax
+		
+;*******************************************
+; int BCDAdd(BCD *pVar1, BCD *pVar2)
+; adds BCD-value at pVar2 to the BCD-value at pVar1
+_BCDAdd:
+                jsr popax             ; pVar2
+                sta ptr2                ;  lo
+                stx ptr2+1              ;  hi
+
+                jsr popax             ; pVar1
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                clc
+                sed
+                lda (ptr2)
+                adc (ptr1)
+                pha
+
+                ldy #1
+                lda (ptr2),y
+                adc (ptr1),y
+                tax
+                pla
+
+                cld    ; put the system back into binary mode
+
+                jmp tstax       ; set flags
+
+;*******************************************
+; int BCDAddConst(BCD *pVar1, BCD Const)
+; adds BCD-value Const to the BCD-value at pVar1
+_BCDAddConst:
+                jsr popax             ; pVar2
+                sta tmp1              ;  lo
+                stx tmp2              ;  hi
+
+                jsr popax             ; pVar1
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                clc
+                sed
+                lda tmp1
+                adc (ptr1)
+                pha
+
+                ldy #1
+                lda tmp2
+                adc (ptr1),y
+                tax
+                pla
+
+                cld    ; put the system back into binary mode
+
+                jmp tstax       ; set flags
+
+;*******************************************
+; int BCDSub(BCD *pVar1, BCD *pVar2)
+; subs BCD-value at pVar2 from the BCD-value at pVar1
+_BCDSub:
+                jsr popax             ;pVar2
+                sta ptr2                ;  lo
+                stx ptr2+1              ;  hi
+
+                jsr popax             ; pVar1
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                sec
+                sed
+                lda (ptr2)
+                sbc (ptr1)
+                pha
+
+                ldy #1
+                lda (ptr2),y
+                sbc (ptr1),y
+                tax
+                pla
+
+                cld    ; put the system back into binary mode
+
+                jmp tstax
+
+;*******************************************
+; int BCDSubConst(BCD *pVar1, BCD Const)
+; subs BCD-value Const from the BCD-value at pVar1
+_BCDSubConst:
+                jsr popax             ;pVar2
+                sta tmp1              ;  lo
+                stx tmp2              ;  hi
+
+                jsr popax             ; pVar1
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                sec
+                sed
+                lda tmp1
+                sbc (ptr1)
+                pha
+
+                ldy #1
+                lda tmp2
+                sbc (ptr1),y
+                tax
+                pla
+
+                cld    ; put the system back into binary mode
+
+                jmp tstax
+
+;*******************************************
+; void BCDToASCII(BCD *pVar1, BCD *pVar2)
+; converts 4-nybble BCD-value at pVar1 into 4-chars at pVar2
+_BCDToASCII:
+                jsr popax             ; pVar2
+                sta ptr2                ;  lo
+                stx ptr2+1              ;  hi
+                jsr popax             ; pVar1
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                ldy #1
+                lda (ptr1),y    ; get high-byte
+                tax             ; save it
+                lsr A
+                lsr A
+                lsr A
+                lsr A           ; get high-nybble
+                ora #$30        ; => ASCII
+                sta (ptr2)      ; into string
+
+                txa             ; restore digit
+                and #$0f        ; mask low-nybble
+                ora #$30        ; => ASCII
+                sta (ptr2),y    ; into string
+
+                lda (ptr1)      ; get low-byte
+                tax             ; save it
+                lsr A
+                lsr A
+                lsr A
+                lsr A
+                ora #$30
+                iny             ; y = 2
+                sta (ptr2),y
+                txa
+                and #$0f
+                ora #$30
+                iny
+                sta (ptr2),y
+
+                rts

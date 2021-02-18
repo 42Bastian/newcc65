@@ -1,0 +1,88 @@
+;
+; smaller slicker hand-coded line-parsing routine
+;
+; assemble this with global.m65
+;
+; _parseline(line, argv) char * line; int * argv;
+;
+	.globl	__parseli
+__parseli:
+	ldy	#0
+	sty	tmp1		; use tmp1 as counter
+	jsr	popax		; get argv ptr
+	sta	ptr2		; save into ptr2
+	stx	ptr2+1
+	jsr	popax		; get line pointer
+	sta	ptr1		; save in ptr1
+	stx	ptr1+1
+	cpx	#0
+	bne	parse1		; test line pointer for zero-ness...
+	lda	ptr1
+	beq	parse8
+parse1:				; skip whitespace
+	ldy	#0		; get a char
+	lda	(ptr1),y
+	beq	parse8		; done! finish up and leave
+	cmp	#$9B		; EOL?
+	beq	parse8		; yup, same as nul
+	jsr	white_p
+	bcc	parse2		; not white
+parse1w:
+	inc	ptr1		; bump string ptr
+	bne	parse1
+	inc	ptr1+1
+	bne	parse1
+
+parse2:				; remember the ptr, bump arg count
+	ldy	#0
+	lda	ptr1
+	sta	(ptr2),y	; store ptr lo
+	iny
+	lda	ptr1+1
+	sta	(ptr2),y	; ... ptr hi
+	inc	tmp1		; and bump arg count
+	clc
+	lda	ptr2
+	adc	#2		; bump argv ptr
+	sta	ptr2
+	bcc	parse3
+	inc	ptr2+1
+
+parse3:				; find next whitespace
+	ldy	#0
+	lda	(ptr1),y	; get a char
+	beq	parse8		; nul, we're done
+	jsr	white_p		; white?
+	bcs	parse4		; yes, found end of this arg
+	inc	ptr1
+	bne	parse3
+	inc	ptr1+1
+	bne	parse3
+parse4:
+	pha			; save the char for a sec
+	lda	#0
+	sta	(ptr1),y	; zap in eos
+	pla			; get orig char back
+	beq	parse8		; done!
+	cmp	#$9B
+	bne	parse1w		; nope, go bump ptr and keep scanning
+
+parse8:				; load up arg count and return
+	ldx	#0
+	lda	tmp1
+	rts
+
+;
+; return cond codes carry set if white, clear if non-white
+;
+white_p:
+	cmp	#$7F		; > 7F?
+	bcs	w_ret1		; yes, that's white
+	cmp	#$21		; <= space?
+	bcs	w_ret0		; no, it's data.
+w_ret1:
+	sec
+	rts
+w_ret0:
+	clc
+	rts

@@ -1,0 +1,16 @@
+;
+; get a kbd char.
+; assemble with atari.m65
+;
+	.globl	_kbdchar
+_kbdchar:
+	jsr	k		; call the internal routine
+	ldx	#0		; so we can zap X before
+	cmp	#0		;  (setting cond codes and)
+	rts			;   returning
+k:
+	lda	keybdv+5
+	pha
+	lda	keybdv+4
+	pha
+	rts

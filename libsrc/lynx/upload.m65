@@ -1,0 +1,121 @@
+*
+* Uploader via ComLynx
+*
+* InstallUploader(char divider);
+*
+* divider is : 12  = 9600 Bd
+*               1  = 62500 Bd
+*
+		xref popax,pushax
+		xref _InstallIRQ
+
+                global _InstallUploader
+
+Loader          = $fe00         ; Loader-start
+
+_InstallUploader:
+
+                ldx #60                ; put Loader in the right place
+loop              lda _Loader,x
+                  sta Loader,x
+                  dex
+                bpl loop
+
+;
+; install serial-irq  vector
+;
+                ldax #4
+                jsr pushax
+                ldax #UpLoader
+                jsr pushax
+                jsr _InstallIRQ ; set vector
+;
+; set baudrate
+;
+                jsr popax       ; get divider
+                sta $fd10
+                lda #%00011000  ; Baudrate = 1MHz/16/(divider+1)
+                sta $fd11
+;
+; set ComLynx parameters
+;
+                lda #%00011101  ; even par
+                sta $fd8c       ; set 8E1
+;
+; clear Rx-buffer
+;
+clear           bit $fd8c
+                bvc ok0
+                ldx $fd8d
+                bra clear
+;
+; enable Rx-interrupt
+;
+ok0:            ora #$40
+                sta $fd8c
+                rts
+;
+; Rx-IRQ-handler
+;
+UpLoader::
+                lda $fd8d       ; wait for the start sequence
+                bit flag        ; already seen $81 ?
+                bpl again       ; >= 0 => no
+                cmp #$50        ; "P" ?
+                bne again       ; not correct, so clear flag
+                jmp Loader
+
+again           stz flag
+                cmp #$81
+                bne exit
+                sta flag
+;
+; last action : clear interrupt
+;
+exit            lda #$10
+                sta $fd80
+                rts
+
+flag            dc.b 0
+
+
+;
+; Note : Don't change anything beyond this point without !
+;        Or think at least twice ! ;-)
+;
+
+load_len        = $0
+load_ptr        = $2
+load_ptr2       = $4
+
+_Loader:        ldy #4
+loop0             jsr $fe2d     ; !!!!!!!!!
+                  sta load_len-1,y
+                  dey
+                bne loop0       ; get destination and length
+                tax             ; lowbyte of length
+
+                lda load_ptr
+                sta load_ptr2
+                lda load_ptr+1
+                sta load_ptr2+1
+                
+loop1           inx
+                bne cont1
+                inc load_len+1
+                bne cont1
+                jmp (load_ptr)
+
+cont1           jsr $fe2d
+                sta (load_ptr2),y
+                sta $fda0       ; feedback ;-)
+                iny
+                bne loop1
+                inc load_ptr2+1
+                bra loop1
+
+; $fe2d
+read_byte       bit $fd8c
+                bvc read_byte
+                lda $fd8d
+                rts

@@ -1,0 +1,22 @@
+Note :
+This version has been edited to fit to the new cc65.
+The original version is in doc/old
+-*- Text -*-
+
+			Getting started using CC65.
+
+CC65, XOPT, RA65, LINK65, and LIBR65, along with the assorted runtime
+libraries and things, comprise everything you should need to compile
+and run C programs on your Atari 8-bit computer.
+
+Basically, the sequence of things you do to compile a and run a C
+program is as follows:
+
+1:  Use CC65 to compile your C source into assembler language
+2:  Use XOPT to optimize you output-file.
+3:  Use RA65 assemble the results into an object file
+4:  Use LINK65 to link your object file with the C runtime stuff,
+    to produce an executable.
+
+In the CC65 distribution, you should find some demos (examples.c65).
+

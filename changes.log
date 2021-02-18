@@ -1,0 +1,12 @@
+change-log by 42Bastian Schick
+------------------------------
+(TAB-size 8)
+changes are marked with /*42BS*/
+
+- 23.08.96
+  xgen.c 	: removed O_BINARY from open(..)
+  printobj.c	: change <file.h> into <sys/file.h>
+  libr65.c	: removed O_BINARY from open(..)
+  link65.c	: removed O_BINARY and change modus from 744 to 644
+  opcode.c	: removed decode_operand-prototype
+  

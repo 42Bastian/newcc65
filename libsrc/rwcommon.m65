@@ -1,0 +1,27 @@
+;
+; common rtn for read, write
+;
+	.globl	__rwsetup
+__rwsetup:
+	ldy	#4
+	jsr	ldaxysp		; get iocb
+	sta	tmp3		; save it
+	ldy	#0
+	jsr	ldaxysp		; get size
+	php			; save cond codes, for zero-ness
+	stx	tmp2
+	ldx	tmp3		; iocb
+	sta	icbll,x
+	lda	tmp2		; size hi
+	sta	icblh,x
+	ldy	#2		; get buf addr
+	jsr	ldaxysp
+	stx	tmp2
+	ldx	tmp3
+	sta	icbal,x
+	lda	tmp2
+	sta	icbah,x
+	jsr	incsp6		; pop args
+	plp
+	rts
+;

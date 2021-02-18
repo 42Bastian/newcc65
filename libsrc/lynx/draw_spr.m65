@@ -1,0 +1,29 @@
+;
+; C: DrawSprite(char * pSCB)
+; extern char * RenderBuffer;
+;
+
+                global _DrawSprite
+		global DrawSprite	; used by lib-functions
+
+		xref popax
+		xrefzp _RenderBuffer
+		
+_DrawSprite:    jsr popax       	; get pSCB
+DrawSprite:
+                sta $fc10
+                stx $fc11
+		lda _RenderBuffer
+		ldx _RenderBuffer+1
+                sta $fc08
+                stx $fc09
+                lda #1
+                sta $fc91
+                stz $fd90
+_DrawSprite1:
+                stz $fd91
+                lda $fc92
+                lsr A
+                bcs _DrawSprite1
+                stz $fd90
+                rts

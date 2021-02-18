@@ -1,0 +1,22 @@
+;
+; heap defs for malloc and pmalloc
+;
+
+;
+; C variable (char * )_himem.  contains pointer to next piece of
+; mem unallocated.
+;
+	.globl	__himem
+__himem:
+	.word	__FREEMEM	; defined by linker, top of executable
+
+;
+; C variable (memblock * )_freelst.  contains head of linked list
+; of blocks of mem that have been freed
+;
+	.globl	__freelst
+__freelst:
+	.word	0		; nil to start with
+;
+; that's all for here.  see pmalloc.c and malloc.c for code that uses them
+;

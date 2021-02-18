@@ -1,0 +1,20 @@
+;
+; write(iocb, buf, nbytes)->nbytes written
+;
+	.globl	_write
+_write:
+	jsr	__rwsetup	; do common setup
+	beq	write9		; if size 0, it's a no-op
+	lda	#putchr
+	sta	iccom,x
+	jsr	ciov
+	bpl	write9
+	jmp	ioreturn	; do common error vector stuff
+write9:
+	lda	icbll,x		; get buf len lo
+	pha
+	lda	icblh,x		; buf len hi
+	tax
+	pla
+	rts
+;

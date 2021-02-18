@@ -1,0 +1,18 @@
+       .globl  _strlen
+_strlen:
+        jsr     popax
+        sta     ptr1
+        stx     ptr1+1
+        ldx     #0              ; YX used as counter
+        ldy     #0
+strlen1:
+        lda     (ptr1),y
+        beq     strlen9
+        iny
+        bne     strlen1
+        inc     ptr1+1
+        inx
+        bne     strlen1
+strlen9:
+        tya                     ; get low byte of counter, hi's all set
+        rts

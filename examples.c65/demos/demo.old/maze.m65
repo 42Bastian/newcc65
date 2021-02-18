@@ -1,0 +1,354 @@
+; maze.m65 - adapted from routines used in Labyrinth.
+; by Kurt Olsen
+; Copyright 1989, 1996 by Kurt Olsen.
+; 
+; If you feel like you want to use this, feel free to contact
+; me.  I'm sure we can work something out.
+;
+COLORBYTE = $00
+X       =   $01
+Y       =   $02
+COUNTER =   $03
+CN      =   $04
+TYPEFLG =   $05
+WIDTH   =   158
+HEIGHT  =   100
+;
+	.globl	_maze
+_maze:
+         JMP   FIXMAZE
+;
+MAZE:    LDA   #0+128
+         STA   CN
+;
+MAZE1:   LDA   #15
+         STA   COLORBYTE
+         LDY   X
+         LDA   Y
+         JSR   _plotfix
+;
+LOOP:    LDA   TYPEFLG
+         BEQ   LOOP1
+         LDA   CN
+         CMP   #25+128
+         BCC   LOOP1
+         LDA   #15+128
+         STA   CN
+LLP1:    JSR   BACKUP
+         BMI   LLP1
+;
+LOOP1:   JSR   FIND
+         LDA   COUNTER
+         CMP   #4
+         BNE   L1
+BACK1:   JSR   BACKUP
+         JMP   LOOP1
+L1:      CMP   #5
+         BNE   L15
+DONE:    RTS
+L15:     INC   CN
+L2:      JSR   _genrand
+         CMP   #63
+         BCS   L3
+U:       JMP   UP
+L3:      CMP   #127
+         BCS   L4
+L:       JMP   LEFT
+L4:      CMP   #190                      ;IF D < 190 THEN DOWN
+         BCS   L5
+D1:      JMP   DOWN
+L5:      JMP   RIGHT                     ;IF D >190 THEN RIGHT
+
+UP:      LDA   Y                         ;MOVE UP
+         CMP   #2                        ;MAKE SURE THAT
+         BCS   L6                        ;IT CAN GO UP
+NOGOOD0: JMP   L2                        ;IF NOT THEN GO BACK TO START
+L6:      DEA                             ;MAKE SURE THAT WE HAVE A
+         DEA                             ;LEGAL MOVE (NO COLLISIONS)
+         LDY   X
+         JSR   _scrnfix                  ;GET COLOR
+         BNE   L2        ;NOGOOD0        ;IF NOT 0 THEN NO GOOD
+         DEC   Y                         ;IF LEGAL THEN
+         DEC   Y                         ;SUBTRACT 2 FROM Y VALUE
+         LDA   #1                        ;RECORD MOVE
+         STA   COLORBYTE                 ;BY SETTING COLOR TO #1
+         LDY   X
+         LDA   Y
+         JSR   _plotfix                  ;PLOT LOCATION
+         LDA   #15                       ;SET COLOR FOR TO
+         STA   COLORBYTE                 ;CONNECT THE DOTS
+         LDA   Y                         ;ADD 1 TO
+         INA                             ;Y VALUE
+         LDY   X
+         JSR   _plotfix                  ;PLOT CONNECTION
+         JMP   LOOP                      ;RETURN TO START
+	 
+LEFT:    LDY   X
+         CPY   #2
+         BCS   L7
+NOGOOD1: JMP   L2
+L7:      DEY
+         DEY
+         LDA   Y
+         JSR   _scrnfix
+         BNE   NOGOOD1
+         DEC   X
+         DEC   X
+         LDA   #2
+         STA   COLORBYTE
+         LDY   X
+         LDA   Y
+         JSR   _plotfix
+         LDA   #15
+         STA   COLORBYTE
+         LDY   X
+         INY
+         LDA   Y
+         JSR   _plotfix
+         JMP   LOOP
+	 
+DOWN:    LDA   Y
+         CMP   #HEIGHT
+         BCC   L10
+NOGOOD2: JMP   L2
+L10:     INA
+         INA
+         LDY   X
+         JSR   _scrnfix
+         BNE   NOGOOD2
+         INC   Y
+         INC   Y
+         LDA   #3
+         STA   COLORBYTE
+         LDY   X
+         LDA   Y
+         JSR   _plotfix
+         LDA   #15
+         STA   COLORBYTE
+         LDY   X
+         LDA   Y
+         DEA
+         JSR   _plotfix
+         JMP   LOOP
+	 
+RIGHT:   LDY   X
+         CPY   #WIDTH
+         BCC   L11
+NOGOOD3: JMP   L2
+L11:     INY
+         INY
+         LDA   Y
+         JSR   _scrnfix
+         BNE   NOGOOD3
+         INC   X
+         INC   X
+         LDA   #4
+         STA   COLORBYTE
+         LDY   X
+         LDA   Y
+         JSR   _plotfix
+         LDA   #15
+         STA   COLORBYTE
+         LDY   X
+         DEY
+         LDA   Y
+         JSR   _plotfix
+         JMP   LOOP
+	 
+BACKUP:  LDA   Y                         ;FIND COLOR
+         LDY   X                         ;AT X,Y
+         JSR   _scrnfix
+         PHA                             ;SAVE IT
+         LDA   #15                       ;SET COLOR TO
+         STA   COLORBYTE                 ;WHITE
+         LDY   X                         ;PLOT AT
+         LDA   Y                         ;LOCATION X,Y
+         JSR   _plotfix
+         PLA                             ;RETRIEVE COLOR
+         CMP   #4                        ;IS IT 4
+         BNE   L20                       ;NO, THEN DON'T MOVE LEFT
+         DEC   X                         ;YES, THEN MOVE
+         DEC   X                         ;BACK
+         JMP   BACK2                     ;SKIP OVER THE REST
+L20:     CMP   #3
+         BNE   L21
+         DEC   Y
+         DEC   Y
+         JMP   BACK2
+L21:     CMP   #2
+         BNE   L22
+         INC   X
+         INC   X
+         JMP   BACK2
+L22:     CMP   #1
+         BNE   BACK2
+         INC   Y
+         INC   Y
+BACK2:   DEC   CN
+         RTS
+	 
+FIND:    LDA   #0                        ;RESET COUNTER  
+         STA   COUNTER                   ;TO ZERO 
+         LDY   X                         ;FIND OUT IF 
+         CPY   #2                        ;'X' IS A LEGAL VALUE 
+         BCC   L40a                      ;NO, AUTOMATICALLY INCREMENT COUNTER
+L30:     DEY                             ;SUBTRACT 2 FROM X VALUE 
+         DEY                             ;TO CHECK FOR COLOR 
+         LDA   Y
+         JSR   _scrnfix                  ;IS IT BLACK 
+         BEQ   L40                       ;YES, THEN DON'T CHANGE COUNTER
+L40a:    INC   COUNTER                   ;NO, THEN ADD 1 TO COUNTER 
+L40:     LDY   X
+         CPY   #WIDTH
+         BCS   L41a
+L31:     INY
+         INY
+         LDA   Y
+         JSR   _scrnfix
+         BEQ   L41
+L41a:    INC   COUNTER
+L41:     LDA   Y
+         CMP   #2
+         BCC   L42a
+L32:     DEA
+         DEA
+         LDY   X
+         JSR   _scrnfix
+         BEQ   L42
+L42a:    INC   COUNTER
+L42:     LDA   Y
+         CMP   #HEIGHT
+         BCS   L43a
+L33:     INA
+         INA
+         LDY   X
+         JSR   _scrnfix
+         BEQ   L43                       
+L43a:    INC   COUNTER
+L43:     LDA   COUNTER
+         CMP   #4
+         BNE   DONE3
+         LDY   X
+         LDA   Y
+         JSR   _scrnfix
+         CMP   #15
+         BNE   DONE3
+         LDA   #5
+         STA   COUNTER
+DONE3:   RTS
+;
+N2       =   $FE
+;
+FIXMAZE: LDA   #1
+         STA   TYPEFLG
+         JSR   MAZE
+         STZ   TYPEFLG
+         LDA   #HEIGHT
+         STA   Y
+	 LDA   #WIDTH
+         STA   X
+LUUP:    LDY   X
+         LDA   Y
+         JSR   _scrnfix
+         BEQ   FIXIT
+         LDA   X
+         SEC
+         SBC   #$02
+         STA   X
+         CMP   #N2
+         BNE   LUUP
+         LDA   #WIDTH
+         STA   X
+         LDA   Y
+         SEC
+         SBC   #$02
+         STA   Y
+         CMP   #N2
+         BNE   LUUP
+         RTS
+	 
+FIXIT:   LDA   X
+         PHA
+         LDA   Y
+         PHA
+         LDA   X
+         BEQ   LP0
+         LDA   #N2
+         .byte $2C
+LP0:     LDA   #2
+         STA   MX
+         LDA   Y
+         BEQ   LP1
+         LDA   #N2
+         .byte $2C
+LP1:     LDA   #2
+         STA   MY
+LP2:     CLC
+         LDA   MX
+         ADC   X
+         STA   X
+         CMP   #N2
+         BEQ   TOFAR
+         CMP   #WIDTH+2
+         BEQ   TOFAR
+         LDY   X
+         LDA   Y
+         JSR   _scrnfix
+         BEQ   LP2
+         JSR   MAZE1
+         PLA
+         STA   Y
+         PLA
+         STA   X
+         JMP   LUUP
+TOFAR:   LDA   MX
+         CMP   #N2
+         BNE   BIG
+         LDA   #2
+         .byte $2C
+BIG:     LDA   #N2
+         STA   MX
+ADJY:    CLC
+         LDA   MY
+         ADC   Y
+         STA   Y
+         CMP   #N2
+         BNE   NOTSMALL
+         LDA   #2
+         STA   MY
+         BNE   ADJY
+NOTSMALL: CMP  #HEIGHT+2
+         BNE   LP2
+         LDA   #N2
+         STA   MY
+         BNE   ADJY
+;
+MX:       .byte    1
+MY:       .byte    1
+;
+	.globl	_plotfix
+_plotfix:
+	pha
+	tya			; push x value
+	ldx	#$00
+	jsr	pushax
+	pla
+	ldx	#$00
+	jsr	pushax		; push y value
+	lda	$00
+	ldx	#$00
+	jsr	pushax		; push color
+	jsr	_plot
+	rts
+
+	.globl	_scrnfix
+_scrnfix:
+	pha
+	tya
+	ldx	#$00		; push x
+	jsr	pushax
+	pla
+	ldx	#$00
+	jsr	pushax		; push y
+	jsr	_readpixel
+	rts

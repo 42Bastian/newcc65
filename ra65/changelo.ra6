@@ -1,0 +1,37 @@
+change-log for (r)a65
+
+* 1997/01/20 42BS
+1) error.c : changed barf(..) to print current line and current file
+2) global.h : added CurrentFile
+3) xgen.c   : commented printf's out => silent assembly if no errors
+              lbra-stuff add (s. 6)
+4) parse.c  : added '*' for comments in the first row
+5) opcode.c : added the rest of the 65SC02-opcodes 
+              ORA,AND,...,SBC zeropage indirect
+              TSB/TRB
+              BIT #xx ; BIT xx,x ; BIT xxxx,x
+              STZ xx ; STZ xx,x
+              BRK #nn ; this is Lynx specific !!!
+6) xpseudo.c : build in lbra (as replacement for jmp !)   
+7) a65.c    : added BLL-header 
+
+*1997/01/21 42BS
+1) opcode.c : opcode_p : modified to avoid signed extension !    
+
+*1997/28/04
+1) prototyped all function
+2) now case-sensitive
+3) removed suspicious conversion int <-> ptr which may (sure) cause bugs
+on systems with different size of ptr and int
+
+*1997/11/??
+1) New pseudo-opcodes : ldas (load a/x signed) and ldau (load a/x unsigned => x = 0)
+2) ldax adr ; loads a from adr and x from (adr+1)
+3) undefined labels produce an error => external symbols must be declared global
+
+*1998/08/16
+1) double-colon after a label makes it global
+2) referencing with xref-labels via =,equ was buggy.
+3) ldax,ldau and ldas checks for absolute-short addresses
+4) external-symbols need XREF or XREFZP, GLOBAL does not do it !!
+5) compiles now without warning !

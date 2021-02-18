@@ -1,0 +1,42 @@
+# Makefile for a65 && link65 (and others)  -Intruder  Oct 1993
+#
+# intruder@hacktic.nl
+
+CFLAGS = 
+#CFLAGS = -ggdb
+CC=wcl386
+LDFLAGS= -s
+BINDIR=/root/bin
+#BINDIR=/usr/local/bin
+
+OBJ1 = a65.obj symtab.obj parse.obj opcode.obj util.obj list.obj xpseudo.obj
+OBJ2 = error.obj eval.obj xgen.obj copyleft.obj
+
+EXECS = ra65.exe link65.exe libr65.exe # printobj 
+
+.c.obj:
+	wcl386 /c $<
+#	wcl386 /c /hw /d2 /zp1 $<
+
+all:	$(EXECS)
+
+ra65.exe :   $(OBJ1) $(OBJ2)
+	wcl386 /fe=ra65.exe $(OBJ1) $(OBJ2)
+
+
+printobj : printobj.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o printobj printobj.c
+
+link65.exe : link65.obj obj.h copyleft.obj
+	wcl386 /hw /d2 /zp1 /fe=link65.exe link65.obj copyleft.obj
+#	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ link65.obj copyleft.obj
+
+libr65.exe : libr65.obj libr.h obj.h
+	wcl386 /fe=libr65.exe libr65.obj
+#	$(CC) $(CFLAGS) $(LDFLAGS) -o libr65 libr65.c
+
+install : $(EXECS)
+	cp -f $(EXECS) $(BINDIR)
+
+clean:
+	rm -f *.obj *~ core $(EXECS)

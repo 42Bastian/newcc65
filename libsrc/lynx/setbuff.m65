@@ -1,0 +1,43 @@
+;
+; C: SetBuffers(char * Screen,char * Render,char *Collide);
+; extern char * ScreenBuffer,*RenderBuffer;
+;
+; set the screen buffers, it Render != 0 than double-buffering
+
+	xref popax
+
+	global _RenderBuffer,_ScreenBuffer
+	bsszp
+_RenderBuffer	ds 2
+_ScreenBuffer	ds 2
+	
+	text
+	
+	global _SetBuffers
+_SetBuffers:
+	jsr popax		; get Collide
+	cpx #0
+	beq _SetBuffers1	; hi == 0 => no collision-buffer
+	sta $fc0a
+	sta $fc0b
+_SetBuffers1:
+	jsr popax		; get Render
+	ldy #0
+	cpx #0
+	beq _SetBuffer2
+	dey
+	sta _RenderBuffer
+	stx _RenderBuffer+1
+_SetBuffer2:
+	phy
+	jsr popax
+	sta _ScreenBuffer
+	stx _ScreenBuffer+1
+	sta $fd94
+	stx $fd95
+	ply
+	bne _SetBuffer3
+	sta _RenderBuffer
+	stx _RenderBuffer+1
+_SetBuffer3:
+	rts

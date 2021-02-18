@@ -1,0 +1,150 @@
+;
+;   this software is copyright 1989 by john dunning.  see the file
+;   'copyleft.jrd' for the full copyright notice.
+;
+
+;
+; data and part of the code for small-c io library
+; this must be assembled with atari.m65 and global.m65
+;
+
+; canned files.  these are declared pointers to something,
+; but they're really iocbs.
+;
+; it'd be nice if we could make these be on page 0...
+
+	.globl	_stdin
+_stdin:
+	.word	0		; default to screen/kbd
+	.globl	_stdout
+_stdout:
+	.word	0		; default to screen/kbd
+	.globl	_stderr
+_stderr:
+	.word	0		; default to screen/kbd
+
+	.globl	_errno
+_errno:
+	.word	0		; error number
+;
+
+;
+; internal helper fun for open routines.
+; find a free iocb, return in x
+;
+	.globl	findiocb
+findiocb:
+	ldx	#$10		; start at # 1
+findiocb1:
+	lda	ichid,x		; get handler id
+	cmp	#$ff		; free?
+	beq	findiocb9	; yup, return it
+	txa
+	clc
+	adc	#$10		; next iocb
+	tax
+	cmp	#$80		; past last one?
+	bcc	findiocb1	; nope, return it
+	ldx	#$ff		; return -1
+findiocb9:
+	rts
+
+;
+; copen(name, mode)->iocb #
+;
+	.globl	_copen
+_copen:
+	jsr	popax		; get open mode
+	sta	tmp1		; save it
+	jsr	popax		; get name
+	sta	fntemp
+	stx	fntemp+1
+	jsr	findiocb	; try to find a free iocb
+	bmi	copenerr	; no free ones
+	stx	tmp4
+	lda	tmp1		; get open mode again
+	cmp	#'r		; read?
+	bne	copen1
+	lda	#opnin		; open for input
+	bne	copen5
+copen1:
+	cmp	#'w		; write?
+	bne	copen2
+	lda	#opnot
+	bne	copen5
+copen2:
+	cmp	#'a		; write append?
+	bne	copen3
+	lda	#opnot|append
+	bne	copen5
+copen3:
+	cmp	#'d		; directory?
+	bne	copenerr	; bogon, return err
+	lda	#opnin|direct
+
+copen5:
+	ldx	tmp4
+	sta	icax1,x		; store open bits
+	lda	#0
+	sta	icax2,x
+	sta	icbll,x
+	sta	icblh,x
+;
+; make sure the name's got an eol at the end
+;
+	ldy	#0
+copen6:
+	lda	(fntemp),y
+	and	#$7f		; mask for non-inverted
+	beq	copen7
+	cmp	#'a		; need to upcase, for non-sparta dos'es
+	bmi	copen6a
+	cmp	#'z+1
+	bpl	copen6a
+	sec
+	sbc	#$20		; subtract a space
+copen6a:
+;	sta	copenbuf,y
+	sta	casbuf,y	; use casbuf to save a little space
+	iny
+	bne	copen6
+copen7:
+	lda	#$9b
+;	sta	copenbuf,y
+	sta	casbuf,y
+;	lda	#copenbuf\
+	lda	#casbuf\
+	sta	icbal,x
+;	lda	#copenbuf
+	lda	#casbuf
+	sta	icbah,x
+	lda	#open
+	sta	iccom,x
+;
+; all set
+;
+	jsr	ciov
+	bpl	copen8		; ok, return it
+	jmp	ioreturn
+copen8:
+	txa			; return iocb in ax
+	ldx	#0
+	rts
+; zzz
+copenerr:
+	lda	#$ff
+	tax
+	rts
+;copenbuf: .byte	"                           "
+
+;
+; common error vector for io things.  do a jmp here right after calling
+; ciov.  we expect status in y.
+;
+	.globl	ioreturn
+ioreturn:
+	tya			; get return code
+	ldx	#$ff		; return error
+	sta	_errno
+	stx	_errno+1
+	rts

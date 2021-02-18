@@ -1,0 +1,349 @@
+#include <lynx.h>
+
+/* cheesy demo program for cc65 on the atari lynx */
+/* slidly modified 42BS:
+1) peek/poke as macro => speed up
+2) screen at 0x8000
+3) mapctrl = 0xc instead 0
+*/
+
+/* these flags are set by the commandline with -D */
+
+/* #define DEMO0 1  */   /* display image for all you weird science fans */
+/* #define DEMO1 1 */     /* fill screen with random dots */
+/* #define DEMO2 1 */     /* sierpinski triangle */
+/* #define DEMO3 1 */     /* random mazes */
+
+#ifdef  DEMO0
+#  define SCREEN_ADDR image
+#  include "image.h"
+#endif /* DEMO0 */
+
+#ifdef DEMO1
+#  define SCREEN_ADDR 0x8000
+#endif /* DEMO1 */
+
+#ifdef DEMO2
+#  define SCREEN_ADDR 0x8000
+#endif /* DEMO2 */
+
+#ifdef DEMO3
+#  define SCREEN_ADDR 0x8000
+#endif /* DEMO3 */
+
+#define poke(a,b) (*(char *)(a))=(b)
+#define peek(a) (*(char *)(a))
+
+main()
+{
+    int x,y,i;
+    int top;
+    int *j;
+    char *a;
+
+    make_scan_table();
+
+    j = 0xfc08;
+    *j = SCREEN_ADDR;
+    j = 0xfd94;  /* set screen base address - do this last */
+    *j = SCREEN_ADDR;
+
+    poke(0xfda0,0); poke(0xfdb0,0);  /* make sure it's black */
+     
+#ifdef DEMO0
+/*
+ * demo 0 - draw a picture and scroll it up and down with the
+ *          joypad.
+ */
+{ char *b;
+   a = 0xfda0;
+   b = a+0x10;
+    for (x=0; x < 16; x++)
+      {
+      *a++ = x;
+      *b++ = x|x<<4 ;
+      }
+    top = 0;
+    while (1)
+      {
+      if (peek(0xfcb0)&0x80) top--;
+      if (peek(0xfcb0)&0x40) top++;
+      if (top < 0) top = 0;
+      if (top > 206-101) top = 206-101;
+      *j = SCREEN_ADDR+top*80;
+      }
+}
+#endif /* DEMO0 */
+
+#ifdef DEMO1
+/*
+ * demo 1 - draw random dots
+ *          eventually it fills the screen
+ */
+    top = 0; /* wait for joypad to be pressed, increment top to seed randgen */
+    while (peek(0xfcb0) == 0) top+=50;
+    seedrand(top);
+    
+    for (x=1; x < 16; x++)
+      {
+      poke(0xfda0+x, genrand()&0xf);  /* set green */
+      poke(0xfdb0+x, (genrand()&0xf)+(genrand()&0xf)*16);  /* set blue-red */
+      }
+    bzero(SCREEN_ADDR, 80*102);
+    for (x=0; x < 102; x++)
+      plot(x,x,x&0xf);
+      
+    y = 0;
+    while (1)
+      {
+      x = genrand()/205;
+      y = genrand()/325;
+      plot(x,y,genrand()&0xf);
+      }
+#endif /* DEMO1 */
+
+#ifdef DEMO2
+    top = 0; /* wait for joypad to be pressed, increment top to seed randgen */
+    while (peek(0xfcb0) == 0) top+=50;
+    seedrand(top);
+    for (x=1; x < 16; x++)
+      {
+      poke(0xfda0+x, genrand()&0xf);  /* set green */
+      poke(0xfdb0+x, (genrand()&0xf)+(genrand()&0xf)*16);  /* set blue-red */
+      }
+    bzero(SCREEN_ADDR, 80*102);
+    x = genrand()/205;
+    y = genrand()/325;
+    for (i=0; i < 10; i++)
+      {
+      top = genrand();
+      if (top < 10922)
+        { x = (x+80)/2; y = y / 2; }
+      else if (top < 21845)
+        { x = x / 2; y = (y+101)/2; }
+      else
+        { x = (x+159)/2; y = (y+101)/2; }
+      }
+    while (1)
+      {
+      top = genrand();
+      if (top < 10922)
+        { x = (x+80)/2; y = y / 2; plot(x,y,1); }
+      else if (top < 21845)
+        { x = x / 2; y = (y+101)/2; plot(x,y,2); }
+      else
+        { x = (x+159)/2; y = (y+101)/2; plot(x,y,3);}
+      }
+#endif /* DEMO2 */
+
+#ifdef DEMO3
+  bzero(SCREEN_ADDR, 80*102);
+  x = 0;
+  while (!peek(0xfcb0)) x+= 50;
+  seedrand(x);
+  
+  poke(0xfda1, 0xf);
+  poke(0xfdb1, 0xff);
+  while (1)
+    {
+    maze();
+    while (!peek(0xfcb0)) x+= 37;
+    seedrand(x);
+    bzero(SCREEN_ADDR, 80*102);
+    }
+#endif /* DEMO3 */
+}
+
+/*
+poke(a,b)
+char *a;
+char b;
+{
+    *a = b;
+}
+*/
+/*
+peek(a)
+char *a;
+{
+    return *a;
+}
+*/
+char scanbasl[102];
+char scanbash[102];
+
+make_scan_table()
+{
+  int i;
+  
+  for (i=0; i < 102; i++)
+    {
+    scanbasl[i] = (i*80+SCREEN_ADDR)&0xff;
+    scanbash[i] = ((i*80+SCREEN_ADDR)>>8)&0xff;
+    }
+}
+#ifdef DEMO3
+/*
+ * random maze generator.
+ */
+
+#define Xmax (160-2)
+#define Ymax (102-2)
+
+int done=0;
+int x,y,v,w;
+
+maze()
+{
+  done = 0;
+  
+  x = (genrand()/421)*2; y = (genrand()/656)*2;
+
+  while (!done)
+    {
+    doseg();
+    x = v;
+    y = w;
+    backup();
+    x = v;
+    y = w;
+    }
+}
+
+doseg()
+{
+  int moves,r;
+
+  moves = 1;
+
+  while (moves)
+    {
+    moves = 4;
+    if (x == 0)
+      moves--;
+    if (x>0)
+      if (readpixel(x-2,y) == 1)
+        moves--;
+    if (y == 0)
+      moves--;
+    if (y>0)
+      if (readpixel(x,y-2) == 1)
+        moves--;
+    if (x == Xmax)
+      moves--;
+    if (x < Xmax)
+      if (readpixel(x+2,y) == 1)
+        moves--;
+    if (y == Ymax)
+      moves--;
+    if (y < Ymax)
+      if (readpixel(x,y+2) == 1)
+        moves--;
+    if (moves == 0)
+      break;
+l0:
+
+    plot(x, y, 1);
+    plot(x+1, y+1, 1);
+    r = genrand()>>13;
+    switch(r)
+      {
+      case 0: if (x)
+          if (readpixel(x-2,y)==0)
+            {
+            plot(x-1, y, 1);
+            x-= 2;
+            goto l0;
+            }
+        break;
+      case 1: if (y)
+          if (readpixel(x,y-2)==0)
+            {
+            plot(x, y-1, 1);
+            y-= 2;
+            goto l0;
+            }
+        break;
+      case 2: if (x < Xmax)
+          if (readpixel(x+2,y)==0)
+            {
+            plot(x+1, y, 1);
+            x+= 2;
+            goto l0;
+            }
+        break;
+      case 3: if (y < Ymax)
+          if (readpixel(x,y+2)==0)
+            {
+            plot(x, y+1, 1);
+            y+= 2;
+            goto l0;
+            }
+        break;
+      }
+    }
+    v = x;
+    w = y;
+}
+
+backup()
+{
+  int moves;
+  moves = 0;
+
+  done = 0;
+  while (!moves && !done)
+    {
+    plot(x+1, y+1, 0);
+    if (x)
+      if (readpixel(x-1,y) && readpixel(x-1,y+1))
+        {
+        x-= 2;
+        goto l1;
+        }
+    if (y)
+      if (readpixel(x,y-1) && readpixel(x+1,y-1))
+        {
+        y-= 2;
+        goto l1;
+        }
+    if (x < Xmax)
+      if (readpixel(x+1,y) && readpixel(x+3,y+1))
+        {
+        x+= 2;
+        goto l1;
+        }
+    if (y < Ymax)
+      if (readpixel(x,y+1) && readpixel(x+1,y+3))
+        {
+        y+= 2;
+        goto l1;
+        }
+    done = 1;
+l1: moves = 4;
+    if (x==0)
+      moves--;
+    else
+      if (readpixel(x-2,y) == 1)
+        moves--;
+    if (y==0)
+      moves--;
+    else
+      if (readpixel(x,y-2) == 1)
+        moves--;
+    if (x==Xmax)
+      moves--;
+    else
+      if (readpixel(x+2,y) == 1)
+        moves--;
+    if (y==Ymax)
+      moves--;
+    else
+      if (readpixel(x,y+2) == 1)
+        moves--;
+    }
+    v = x;
+    w = y;
+}
+
+#endif /* DEMO3 */

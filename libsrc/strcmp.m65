@@ -1,0 +1,51 @@
+
+;>#define NOARGC  /* no arg count passing */
+;>#define FIXARGC /* don't expect arg counts passed in */
+;>
+;>/*
+;>   This software is copyright 1989 by John Dunning.  See the file
+;>   'COPYLEFT.JRD' for the full copyright notice.
+;>*/
+;>
+;>/*
+;>   return <0,   0,  >0  for
+;>         s<t, s=t, s>t
+;>*/
+;>strcmp(s, t) 
+;>char *s, *t; 
+;>{
+;>  while(*s == *t)
+;>    {
+;>    if(*s == 0) return (0);
+;>    ++s; ++t;
+;>    }
+;>  return (*s - *t);
+;>}
+	global _strcmp
+
+	
+_strcmp:
+	jsr popax
+	sta ptr1
+	stx ptr1+1
+	jsr popax
+	sta ptr2
+	stx ptr2+1
+
+	ldy #0
+_1	lda (ptr2),y
+	cmp (ptr1),y
+	bne _98
+	tax
+	beq _99
+	iny
+	bne _1
+	inc ptr1+1
+	inc ptr2+1
+	bra _1
+_98:	ldx #0
+	sec
+	sbc (ptr1),y
+	bpl _99
+	dex
+_99	rts

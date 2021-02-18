@@ -1,0 +1,11 @@
+	.globl	_tolower
+_tolower:
+	jsr	popax		; get the char
+	cmp	#'A		; < 'a'?
+	bcc	tolower9	; yup, skip it
+	cmp	#'Z+1		; > 'z ?
+	bcs	tolower9
+	adc	#$20		; carry's already set
+tolower9:
+	rts
+

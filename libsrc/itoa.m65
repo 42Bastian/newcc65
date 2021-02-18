@@ -1,0 +1,41 @@
+;
+; itoa(i, s);
+;
+
+
+	global	_itoa
+_itoa:
+	jsr	popax			; get string addr
+	sta	ptr1
+	stx	ptr1+1
+	jsr	popax			; get number
+	sta	fr0
+	stx	fr0+1			; set up to floatify
+	cpx	#0			; neg?
+	bpl	itoa_1
+	jsr	negax
+	sta	fr0			; store it again
+	stx	fr0+1
+	lda	#'-
+	ldy	#0
+	sta	(ptr1),y		; stuff the neg sign
+	inc	ptr1
+	bne	itoa_1
+	inc	ptr1+1
+itoa_1:
+	jsr	ifp			; floatify it
+	jsr	fasc			; ascify it
+	ldy	#0
+itoa_2:
+	lda	(inbuff),y		; get a byte
+	bmi	itoa_3			; hi bit set? ok, done
+	sta	(ptr1),y		; stash in caller's buffer
+	iny
+	jmp	itoa_2
+itoa_3:
+	and	#$7F			; mask it
+	sta	(ptr1),y		; stash it
+	lda	#0
+	iny
+	sta	(ptr1),y
+	rts

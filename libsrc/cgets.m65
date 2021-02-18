@@ -1,0 +1,39 @@
+;
+;   This software is copyright 1989 by John Dunning.  See the file
+;   'COPYLEFT.JRD' for the full copyright notice.
+;
+;
+; simple version of fgets
+; cgets(str, size, iocb)
+; char *str;
+; int size, iocb;
+;
+	.globl	_cgets
+_cgets:
+	jsr	popax		; get iocb
+	sta	tmp1		; stash iocb here
+	jsr	popax		; get size
+	stx	tmp2		; save x
+	ldx	tmp1		; get iocb
+	sta	icbll,x		; store size lo
+	lda	tmp2
+	sta	icblh,x		; store size hi
+	jsr	popax		; get buf addr
+	stx	ptr2+1		; save x
+	sta	ptr2		; and a, we'll return it if not eof
+	ldx	tmp1		; get iocb
+	sta	icbal,x		; store size lo
+	lda	tmp2
+	sta	icbah,x		; store size hi
+	lda	#getrec		; get a line
+	sta	iccom,x
+	jsr	ciov
+	cpy	#0
+	bmi	return0
+	ldx	ptr2+1		; return the pointer
+	lda	ptr2
+	rts
+return0:
+	lda	#0		; return NULL
+	tax
+	rts

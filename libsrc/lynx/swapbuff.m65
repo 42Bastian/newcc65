@@ -1,0 +1,33 @@
+;
+; C: SwapBuffers()
+;
+; Swap Render and ScreenBuffer
+;
+
+	xrefzp _RenderBuffer,_ScreenBuffer
+	xrefzp __viddma
+	global _SwapBuffers
+
+_SwapBuffers:
+	ldy _RenderBuffer
+	ldx _RenderBuffer+1
+	lda _ScreenBuffer
+	sty _ScreenBuffer
+	sta _RenderBuffer
+	lda _ScreenBuffer+1
+	stx _ScreenBuffer+1
+	sta _RenderBuffer+1
+	lda __viddma
+	and #2
+	beq _SwapBuffer1
+	  clc
+	  tya
+	  adc #<8159
+	  tay
+	  txa
+	  adc #>8159
+	  tax
+_SwapBuffer1:
+	sty $fd94	   
+	stx $fd95
+	rts

@@ -1,0 +1,34 @@
+changes:
+
+I made many changes on nearly all parts of the cc65-package but there's
+still a lot of work...
+
+Some changes :
+
+1) All source should now compile with gcc on whatever machine (feedback !!).
+2) No native stuff anymore.
+3) Identifiers max length is now set to 32
+4) ra65 is now case-sensitiv
+5) *.COM files do have a BLL header (hehehe).
+6) cc65's options are case-sensitiv
+7) cc65 accepts -D to define macros on command-line
+8) start-address for link65 defaults now to $400.
+
+To do :
+1) structs do not hide there components.
+2) Emulating register with zero-page variables.
+97/6/7
+Done.
+3) local labels in ra65
+4) porting BLL to ra65 or vice versa ;-)
+5) Compounds do not hide there locals :(
+6) Change the hand-coded divide-routine to a Suzy-based one.
+
+
+42Bastian
+elw5basc@gp.fht-esslingen.de
+
+PS: Again : don't forget to set CC65LIB and CC65INCLUDE !!!
+PPS: Always include global.h or lynx.h !!!!
+:
+

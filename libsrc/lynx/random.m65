@@ -1,0 +1,42 @@
+* RANDOM.M65
+*
+* Offered by Rob Nicholson.
+* It works great _and_ is fast !
+* ported :) by 42BS
+*
+* C: int random()
+
+		xref tstax
+
+
+                global _random
+_random::
+                lda random_seed+1               ; havn't a clue what this does (me neither 42BS ;-)
+                tax
+                eor #$80
+                rol A
+                rol random_seed+2
+                ror random_seed+1
+                lda random_seed
+                sta random_seed+1
+
+                ror A
+                eor random_seed+2
+                stx random_seed+2
+                sta random_seed
+;
+; 16-Bit random in AX
+;
+                pha
+                txa
+                lsr A
+                tax
+                pla
+                ror A
+;
+; shift right once => unsigned random-number
+;
+                jmp tstax       ; set cc
+                
+random_seed     dc.w 0
+last_random     dc.b 35

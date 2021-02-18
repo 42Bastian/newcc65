@@ -1,0 +1,110 @@
+; interrupt handler
+; written 7.97 by 42Bastian Schick
+;
+; global routines : InitIRQ()
+;                   InstalIRQ(int num, int (* funptr)() )
+;                   DeInstallIRQ(int num)
+;
+; 97/09/26	42BS    added some space-saving stuff 
+; 97/10/14	42BS	added some comments
+
+; externals
+		xref popax,decsp2
+
+__IRQ:          phy
+                phx
+                pha
+                cld		; binary mode
+
+                lda $fd81	; get pending interrupt(s)
+                sta __IRQ1+1
+                lda #0		; start checking with HBL
+                tax
+                tay		; no parameters
+                ina
+__IRQ1:		bit #00
+                bne __IRQ2
+                inx
+                inx
+                asl A		
+                bne __IRQ1
+                bra __IRQ3
+                
+__IRQ2:         sta $fd80   	; clear interrupt
+                jsr __IRQ5	; call ISR
+                
+__IRQ3:         pla
+                plx
+                ply
+                rti
+                
+__IRQ5:         jmp (_irqvecs,x)
+                
+                global _InitIRQ
+
+DummyIRQ:
+_InitIRQ:       php             ; will be replace by RTS !
+saveIRQ         sei
+_irqvecs
+;
+; we use this space later for the vectors
+; so InitIRQ is disabled
+;
+                lda #$60	; opcode for RTS
+                sta _InitIRQ    ; disable _InitIRQ
+
+                ldax #__IRQ	; set vector
+                sta $fffe
+                stx $ffff
+
+                ldy #15	; init. dispatcher
+                ldx #<DummyIRQ
+_InitIRQ1: 
+                lda #>DummyIRQ
+                sta _irqvecs,y
+                dey
+                txa
+                sta _irqvecs,y
+                dey
+                bpl _InitIRQ1
+                plp
+_InitIRQ2       rts
+
+;
+; C: InstallIRQ(int num, int (* funptr)() )
+;
+                global _InstallIRQ
+
+_InstallIRQ:
+                php
+                sei
+                jsr popax       ; get funptr
+                phx
+                pha
+                jsr popax       ; get num
+                asl A                           ; * 2
+                tay
+                pla                             ; pop low-byte funptr
+                sta _irqvecs,y
+                pla                             ; pop high-byte
+                sta _irqvecs+1,y
+                plp
+                rts
+
+;
+; C: DeInstallIRQ(int num)
+;
+                global _DeInstallIRQ
+
+_DeInstallIRQ:
+                php
+                sei
+                jsr popax       ; get num
+                asl A
+                tay
+                lda #<DummyIRQ
+                sta _irqvecs,y
+                lda #>DummyIRQ
+                sta _irqvecs+1,y
+                plp
+                rts

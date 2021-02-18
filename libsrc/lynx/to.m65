@@ -1,0 +1,383 @@
+*********************************************
+** Writes a text at a given pixel-postion  **
+*********************************************
+** 19.08.1997 Matthias Domin               **
+** 20.08.1997 modified by 42Bastian Schick **
+** 27.11.1997 call to DrawSprite directly  **
+*********************************************
+
+* TextOut(p_x, p_y, p_text)
+*int p_x;
+*int p_y;
+*char *p_text;
+*{
+*   char len;
+*   int x,y;
+*   char z;
+*
+*register char *ptr;
+*register char *chptr;
+*
+*   ptr = p_text;
+*   len = 0;
+*   while (*ptr++)
+*     len++;
+*
+*   for (y = 0; y < 11; y++)
+*      {
+*      /* Offset  from one sprite-row to the next */
+*      textbuf[y*(1+len+1)] = 1+len+1;
+*      /* empty the last byte */
+*      textbuf[y*(1+len+1)+1+len+1-1] = 0xff;
+*      }
+*   textbuf[11*(1+len+1)] = 0; /* spritestop-offset */
+*
+*   ptr = p_text;
+*   x=0;
+*   while (x < len && *ptr)
+*      {
+*      z = *ptr;
+*      chptr = &charset[z-32][0];
+*
+*      for (y = 0; y < 11; y++)
+*         textbuf[y*(1+len+1)+1+x] = *chptr++;
+*
+*      ptr++;
+*      x++;
+*     }
+*
+*   SCBX(text_scb) = p_x;
+*   SCBY(text_scb) = p_y;
+*   DrawSprite(text_scb);
+*}
+********************************************
+;
+; C: void TextOut(int x,int y,char forecol, char backcol, char *pText)
+; C: void TextOutExt(int x,int y,char forecol, char backcol, char *pText, int stretchx, int stretchy)
+;
+; exported functions,labels:
+                global _TextOut
+                global _TextOutExt
+                
+; imported functions/labels
+		xref popax
+    xref DrawSprite
+
+
+_TextOutExt:
+                ; get stretch-factor
+                jsr popax
+                sta text_scbstretchy    ;  lo
+                stx text_scbstretchy+1  ;  hi
+
+                jsr popax
+                sta text_scbstretchx    ;  lo
+                stx text_scbstretchx+1  ;  hi
+                bra TextOutGoOn
+_TextOut:
+                ldx #1
+                stz text_scbstretchy    ;  lo
+                stx text_scbstretchy+1  ;  hi
+
+                stz text_scbstretchx    ;  lo
+                stx text_scbstretchx+1  ;  hi
+TextOutGoOn
+                ; get string pointer
+                jsr popax
+                sta ptr1                ;  lo
+                stx ptr1+1              ;  hi
+
+                ; get background color  
+                jsr popax       ; if backcolor != 0, set sprite to be opaque, else set it transparent
+
+                stz text_scb
+                and #$f
+                sta tmp1
+                bne spritemode_ok
+                lda #4
+                sta text_scb
+spritemode_ok
+
+                jsr popax       ; get forecolor
+                asl A
+                asl A
+                asl A
+                asl A
+                ora tmp1
+                sta text_scbcolor
+
+                ; get y
+                jsr popax       
+                sta text_scby
+                stx text_scby+1
+
+                ; get x
+                jsr popax
+                sta text_scbx
+                stx text_scbx+1
+
+*   ptr = p_text;
+*   len = 0;
+*   while (*ptr++)
+*     len++;
+******** 42BS **
+                ldy #-1
+string_loop     iny
+                lda (ptr1),y
+                bne string_loop
+****************
+               cpy #20
+               bmi store_stringlen
+               ldy #20
+store_stringlen
+               sty tmp4         ; text_len
+               bne text_ok
+               rts              ; no text => ende
+text_ok:
+               iny
+               iny
+               sty tmp3         ; text_off
+
+*   for (y = 0; y < 11; y++)
+*      {
+*      /* Offset  from one sprite-row to the next */
+*      textbuf[y*(1+len+1)] = 1+len+1;
+*      /* empty the last byte */
+*      textbuf[y*(1+len+1)+1+len+1-1] = 0xff;
+*      }
+*   textbuf[11*(1+len+1)] = 0; /* spritestop-offset */
+** oder (42BS)
+                ldy #11-1
+                ldx #0
+                clc
+text_prep1:
+                lda tmp3        ; text_off
+                sta text_buffer,x
+
+                txa
+                adc tmp3        ; text_off
+                tax
+
+                lda #$ff
+                sta text_buffer-1,x
+
+                dey
+                bpl text_prep1
+
+                stz text_buffer,x
+****************
+
+
+
+*   ptr = p_text;
+*   x=0;
+*   while (*ptr)
+*      {
+*      z = *ptr;
+*      chptr = &charset[z-32][0];
+*
+*      for (y = 0; y < 11; y++)
+*         textbuf[y*(1+len+1)+1+x] = *chptr++;
+*
+*      ptr++;
+*      x++;
+*     }
+                stz tmp2
+;>                ldy #0
+                iny
+text_outloop
+                lda (ptr1),y             ; while (*ptr) { z= *ptr
+                ;beq  text_out
+                ; not needed, because we now use         while (len--)
+                sty tmp1
+
+                sec                            
+                sbc #32
+
+                sta ptr3        ; start calculating the char-data-address
+                stz ptr3+1
+
+                asl A           ; 1. shift
+
+                asl A
+                rol ptr3+1      ; 2. shift
+
+                asl A
+                rol ptr3+1      ; 3. shift (C = 0 because 8*96 < $FFFF)
+; here:    (A:ptr3+1) = 8*ptr3
+
+                adc ptr3
+                bcc no_c1
+                 inc ptr3+1
+no_c1:
+; and now:  (A:ptr3+1) = 9*ptr3
+                asl ptr3        ; <96 => C = 0
+
+                adc ptr3
+                sta ptr3
+                bcc no_c2
+                inc ptr3+1
+                clc             ; clear Carry
+no_c2:
+
+**************
+
+                ; now we have the offset, add the base-address to it:
+                lda ptr3
+                adc #<_char8_11
+                sta ptr3
+                lda ptr3+1
+                adc #>_char8_11
+                sta ptr3+1
+                ; this was:      chptr = &charset[z-32][0];
+
+; and now copy the 11 bytes of that char
+;      for (y =11-1; y >= 0; y--)
+;         textbuf[y*(1+len+1)+1+x] = *chptr++;
+
+               ldx tmp2
+               inx
+               stx tmp2
+
+               ; draw char from top to bottom, reading char-data from offset 11-1 to offset 0
+               ldy #11-1
+text_char
+               lda (ptr3),y         ; *chptr
+               sta text_buffer,x    ;textbuf[y*(1+len+1)+1+x]
+
+               txa
+               adc tmp3         ; text_off
+               tax
+
+               dey
+               bpl text_char
+
+                ; goto next char             
+                ldy tmp1
+                iny
+                dec tmp4        ;text_len
+                bne text_outloop
+
+text_out
+                ldax #text_scb
+;>                jsr pushax
+                jmp DrawSprite
+
+text_scb:
+                dc.b $00,$90,$20
+                dc.w 0,text_buffer
+text_scbx:
+                dc.w 0
+text_scby:
+                dc.w 0
+text_scbstretchx:
+                dc.w $100
+text_scbstretchy:
+                dc.w $100
+text_scbcolor:
+                dc.b 0
+
+text_buffer:  ; 11 rows with (one offset-byte plus 20 character bytes plus one fill-byte) plus one 0-offset-byte
+               ds 11*(1+20+1)+1
+               
+***** The Font
+***** 96 characters from ASCII 32 to 127
+***** 8 pixels wide, 11 pixels high
+***** bit value 0 = foreground, bit value 1 = background / transparent
+_char8_11:
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; 
+            dc.b $FF, $FF, $E7, $E7, $FF, $E7, $E7, $C3, $C3, $C3, $E7  ;!
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $99, $99, $99  ;"
+            dc.b $FF, $FF, $C9, $C9, $80, $C9, $C9, $C9, $80, $C9, $C9  ;#
+            dc.b $E7, $E7, $C3, $99, $F9, $F3, $E7, $CF, $9F, $99, $C3  ;$
+            dc.b $FF, $F1, $E4, $A4, $91, $CF, $E7, $F3, $89, $25, $27  ;%
+            dc.b $FF, $FF, $C4, $99, $99, $90, $9F, $C7, $93, $93, $C7  ;&
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $E7, $E7, $E7  ;'
+            dc.b $F3, $E7, $E7, $CF, $CF, $CF, $CF, $CF, $E7, $E7, $F3  ;(
+            dc.b $CF, $E7, $E7, $F3, $F3, $F3, $F3, $F3, $E7, $E7, $CF  ;)
+            dc.b $FF, $FF, $FF, $FF, $C9, $E3, $80, $E3, $C9, $FF, $FF  ;*
+            dc.b $FF, $FF, $FF, $FF, $E7, $E7, $81, $E7, $E7, $FF, $FF  ;+
+            dc.b $E7, $F3, $E3, $E3, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ;,
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $81, $FF, $FF, $FF, $FF  ;-
+            dc.b $FF, $FF, $E3, $E3, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ;.
+            dc.b $FF, $9F, $9F, $CF, $CF, $E7, $E7, $F3, $F3, $F9, $F9  ;/
+            dc.b $FF, $FF, $E1, $CC, $C4, $C4, $CC, $C8, $C8, $CC, $E1  ;0
+            dc.b $FF, $FF, $F3, $F3, $F3, $F3, $F3, $F3, $83, $E3, $F3  ;1
+            dc.b $FF, $FF, $81, $9F, $CF, $E7, $F3, $F9, $99, $99, $C3  ;2
+            dc.b $FF, $FF, $C3, $99, $99, $F9, $E3, $F9, $99, $99, $C3  ;3
+            dc.b $FF, $FF, $F9, $F9, $80, $99, $C9, $C9, $C9, $CF, $CF  ;4
+            dc.b $FF, $FF, $87, $F3, $F9, $F9, $83, $9F, $9F, $9F, $81  ;5
+            dc.b $FF, $FF, $C3, $99, $99, $99, $99, $83, $CF, $E7, $E3  ;6
+            dc.b $FF, $FF, $CF, $CF, $CF, $E7, $E7, $F3, $F3, $F9, $81  ;7
+            dc.b $FF, $FF, $C3, $99, $99, $91, $C3, $89, $99, $99, $C3  ;8
+            dc.b $FF, $FF, $C7, $E7, $F3, $C1, $99, $99, $99, $99, $C3  ;9
+            dc.b $FF, $FF, $E3, $E3, $FF, $FF, $FF, $E3, $E3, $FF, $FF  ;:
+            dc.b $E7, $F3, $E3, $E3, $FF, $FF, $FF, $E3, $E3, $FF, $FF  ;;
+            dc.b $FF, $FF, $F9, $F3, $E7, $CF, $9F, $CF, $E7, $F3, $F9  ;<
+            dc.b $FF, $FF, $FF, $FF, $FF, $81, $FF, $81, $FF, $FF, $FF  ;=
+            dc.b $FF, $FF, $9F, $CF, $E7, $F3, $F9, $F3, $E7, $CF, $9F  ;>
+            dc.b $FF, $FF, $E7, $E7, $FF, $E7, $E7, $F3, $99, $99, $C3  ;?
+            dc.b $FF, $FF, $80, $3F, $30, $24, $24, $30, $3C, $3C, $81  ;@
+            dc.b $FF, $FF, $99, $99, $99, $81, $99, $99, $99, $C3, $E7  ;A
+            dc.b $FF, $FF, $83, $99, $99, $99, $83, $99, $99, $99, $83  ;B
+            dc.b $FF, $FF, $C3, $99, $99, $9F, $9F, $9F, $99, $99, $C3  ;C
+            dc.b $FF, $FF, $87, $93, $99, $99, $99, $99, $99, $93, $87  ;D
+            dc.b $FF, $FF, $81, $9F, $9F, $9F, $83, $9F, $9F, $9F, $81  ;E
+            dc.b $FF, $FF, $9F, $9F, $9F, $9F, $83, $9F, $9F, $9F, $81  ;F
+            dc.b $FF, $FF, $C1, $99, $99, $91, $9F, $9F, $99, $99, $C3  ;G
+            dc.b $FF, $FF, $99, $99, $99, $99, $81, $99, $99, $99, $99  ;H
+            dc.b $FF, $FF, $C3, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $C3  ;I
+            dc.b $FF, $FF, $C3, $99, $99, $F9, $F9, $F9, $F9, $F9, $F9  ;J
+            dc.b $FF, $FF, $99, $99, $93, $93, $87, $93, $93, $99, $99  ;K
+            dc.b $FF, $FF, $81, $9F, $9F, $9F, $9F, $9F, $9F, $9F, $9F  ;L
+            dc.b $FF, $FF, $9C, $9C, $9C, $94, $94, $94, $88, $9C, $9C  ;M
+            dc.b $FF, $FF, $9C, $9C, $9C, $98, $90, $84, $8C, $9C, $9C  ;N
+            dc.b $FF, $FF, $C3, $99, $99, $99, $99, $99, $99, $99, $C3  ;O
+            dc.b $FF, $FF, $9F, $9F, $9F, $9F, $83, $99, $99, $99, $83  ;P
+            dc.b $F9, $F3, $C3, $99, $99, $99, $99, $99, $99, $99, $C3  ;Q
+            dc.b $FF, $FF, $99, $99, $99, $93, $83, $99, $99, $99, $83  ;R
+            dc.b $FF, $FF, $C3, $99, $F9, $F3, $E7, $CF, $9F, $99, $C3  ;S
+            dc.b $FF, $FF, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $81  ;T
+            dc.b $FF, $FF, $C3, $99, $99, $99, $99, $99, $99, $99, $99  ;U
+            dc.b $FF, $FF, $E7, $C3, $99, $99, $99, $99, $99, $99, $99  ;V
+            dc.b $FF, $FF, $C9, $C9, $C9, $94, $94, $94, $9C, $9C, $9C  ;W
+            dc.b $FF, $FF, $99, $99, $99, $D3, $E7, $E7, $CB, $99, $99  ;X
+            dc.b $FF, $FF, $E7, $E7, $E7, $E7, $C3, $99, $99, $99, $99  ;Y
+            dc.b $FF, $FF, $81, $9F, $9F, $CF, $E7, $F3, $F9, $F9, $81  ;Z
+            dc.b $C3, $CF, $CF, $CF, $CF, $CF, $CF, $CF, $CF, $CF, $C3  ;[
+            dc.b $FF, $F9, $F9, $F3, $F3, $E7, $E7, $CF, $CF, $9F, $9F  ;\
+            dc.b $C3, $F3, $F3, $F3, $F3, $F3, $F3, $F3, $F3, $F3, $C3  ;]
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $99, $C3, $FF  ;^
+            dc.b $80, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ;_
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $F3, $E7, $CF  ;`
+            dc.b $FF, $FF, $C1, $99, $99, $C1, $F9, $F9, $C3, $FF, $FF  ;a
+            dc.b $FF, $FF, $83, $99, $99, $99, $99, $99, $83, $9F, $9F  ;b
+            dc.b $FF, $FF, $C3, $99, $9F, $9F, $9F, $99, $C3, $FF, $FF  ;c
+            dc.b $FF, $FF, $C1, $99, $99, $99, $99, $99, $C1, $F9, $F9  ;d
+            dc.b $FF, $FF, $C3, $9F, $9F, $81, $99, $99, $C3, $FF, $FF  ;e
+            dc.b $FF, $FF, $CF, $CF, $CF, $CF, $81, $CF, $CF, $CF, $E1  ;f
+            dc.b $81, $B9, $C1, $99, $99, $99, $99, $99, $C1, $FF, $FF  ;g
+            dc.b $FF, $FF, $99, $99, $99, $99, $99, $99, $83, $9F, $9F  ;h
+            dc.b $FF, $FF, $81, $E7, $E7, $E7, $E7, $E7, $87, $FF, $E7  ;i
+            dc.b $E3, $F3, $F3, $F3, $F3, $F3, $F3, $F3, $C3, $FF, $F3  ;j
+            dc.b $FF, $FF, $99, $99, $93, $87, $93, $99, $99, $9F, $9F  ;k
+            dc.b $FF, $FF, $81, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $87  ;l
+            dc.b $FF, $FF, $9C, $94, $94, $94, $94, $94, $81, $FF, $FF  ;m
+            dc.b $FF, $FF, $99, $99, $99, $99, $99, $99, $83, $FF, $FF  ;n
+            dc.b $FF, $FF, $C3, $99, $99, $99, $99, $99, $C3, $FF, $FF  ;o
+            dc.b $9F, $9F, $83, $99, $99, $99, $99, $99, $83, $FF, $FF  ;p
+            dc.b $F9, $F9, $C1, $99, $99, $99, $99, $99, $C1, $FF, $FF  ;q
+            dc.b $FF, $FF, $9F, $9F, $9F, $9F, $8F, $91, $99, $FF, $FF  ;r
+            dc.b $FF, $FF, $83, $F9, $F9, $C3, $9F, $9F, $C1, $FF, $FF  ;s
+            dc.b $FF, $FF, $E1, $CF, $CF, $CF, $CF, $CF, $81, $CF, $CF  ;t
+            dc.b $FF, $FF, $C1, $99, $99, $99, $99, $99, $99, $FF, $FF  ;u
+            dc.b $FF, $FF, $E7, $C3, $99, $99, $99, $99, $99, $FF, $FF  ;v
+            dc.b $FF, $FF, $C9, $C9, $94, $94, $94, $94, $9C, $FF, $FF  ;w
+            dc.b $FF, $FF, $99, $99, $C3, $E7, $C3, $99, $99, $FF, $FF  ;x
+            dc.b $E7, $F3, $C3, $99, $99, $99, $99, $99, $99, $FF, $FF  ;y
+            dc.b $FF, $FF, $81, $9F, $CF, $E7, $F3, $F9, $81, $FF, $FF  ;z
+            dc.b $F3, $E7, $E7, $E7, $CF, $9F, $CF, $E7, $E7, $E7, $F3  ;{
+            dc.b $E7, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $E7, $E7  ;|
+            dc.b $CF, $E7, $E7, $E7, $F3, $F9, $F3, $E7, $E7, $E7, $CF  ;}
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $71, $24, $8E  ;~
+            dc.b $FF, $FF, $FF, $FF, $FF, $FF, $FF, $C3, $99, $99, $C3  ;°

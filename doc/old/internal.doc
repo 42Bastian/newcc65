@@ -1,0 +1,90 @@
+-*- text -*-
+
+			Internals doc for CC65
+
+The runtime model:
+
+Stacks:
+
+The program stack used by programs compiled with CC65 is located in
+high memory, typically #xBC00 or so.  The stack starts there and grows
+down.  Arguments to functions, local data etc are allocated on this
+stack, and deallocated when functions exit.
+
+The stack pointer is kept in page 0 location #x80.  All pushing and
+popping of things on/off the stack is done with subroutine calls to
+library routines (PUSHAX and POPAX), which adjust the stack pointer as
+appropriate. 
+
+[There are a bunch of other things defined in page 0 that are used by
+the runtime library; see global.m65]
+
+Registers:
+
+Since CC65 is a member of the Small-C family of compilers, it uses the
+notion of a 'primary register'.  In the Atari implementation, I used
+the AX register pair as the primary register.  Just about everything
+interesting that the library code does is done by somehow getting a
+value into AX, and then calling some routine or other.  In places
+where Small-C would use a secondary register, top-of-stack is used, so
+for instance two argument function like integer-multiply work by
+loading AX, pushing it on the stack, loading the second value, and
+calling the internal function.  The stack is popped, and the result
+comes back in AX.
+
+Calling sequences:
+
+C functions are called by pushing their args on the stack, and JSR'ing
+to the entry point.  (See ex 1, below) If the function returns a
+value, it comes back in AX.  NOTE!!!  A potentially significant
+difference between the CC65 environment and other C environments is
+that the CALLEE pops arguments, not the CALLER.  (This is done so as
+to generate more compact code)  In normal use, this doesn't cause any
+problems, as the normal function entry/exit conventions take care of
+popping the right number of things off the stack, but you may have to
+worry about it when doing things like writing hand-coded assembly
+language routines that take variable numbers of arguments.  More about
+that later.
+
+Ex 1:  Function call:  Assuming 'i' declared int and 'c' declared
+	char, the following C code
+	
+	i = baz(i, c);
+	
+	generates this assembler code.  I've added the comments.
+	
+	lda	_i		; get 'i', low byte
+	ldx	_i+1		; get 'i', hi byte
+	jsr	pushax		; push it
+	lda	_c		; get 'c'
+	ldx	#0		; fill hi byte with 0
+	jsr	pushax		; push it
+	ldy	#2		; arg count
+	jsr	_baz		; call the function
+	sta	_i		; store the result
+	stx	_i+1
+
+Note that the two words of arguments to baz were popped before it
+exitted.  The way baz could tell how much to pop was by the argument
+count in Y at call time.  Thus, even if baz had been called with 3
+args instead of the 2 it was expecting, that would not cause stack
+corruption.  
+
+There's another tricky part about all this, though.  Note that the
+args to baz are pushed in FORWARD order, ie the order they appear in
+the C statement.  That means that if you call a function with a
+different number of args than it was expecting, they wont end up in
+the right places, ie if you call baz, as above, with 3 args, it'll
+operate on the LAST two, not the first two.
+
+Symbols:
+
+CC65 does the usual trick of prepending an underbar ('_') to symbol
+names when compiling them into assembler.  Therefore if you have a C
+function named 'bar', CC65 will define and refer to it as '_bar'.
+Note!  One way in which the CC65 environment deviates from normal C
+environments is that all symbol names are upper-cased by the assembler.
+This behaviour is often the right thing for assembly-language
+programming, but not at all the right thing for C programs.  It was
+originally intended that this behaviour be switchable, but I never
+got around to implementing it.

@@ -1,0 +1,21 @@
+;
+; return t if char is alpha
+;
+	.globl	_isalpha
+_isalpha:
+	jsr	popax		; get the char
+	cmp	#'A'
+	bcc	nope		; if less than 'A', return 0
+	cmp	#'Z+1
+	bcc	yup
+	cmp	#'a
+	bcc	nope
+	cmp	#'z+1
+	bcs	nope
+yup:
+	lda	#1
+	rts
+nope:
+	lda	#0
+	rts
+

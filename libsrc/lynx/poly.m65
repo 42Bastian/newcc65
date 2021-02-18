@@ -1,0 +1,392 @@
+* Note: This routine is buggy and not yet perfect working !
+        Only experimental !! YOU've been warned !!
+	
+****************
+* solid triangle
+* (x1,y1),(x2,y2),(x3,y3)
+* draw
+*        A
+*       /\
+*      /  \
+*     /    \
+*  B /      \ B'
+*    \       \
+*     \_      \
+*       \_     \
+*         \_    \
+*           \_   \
+*             \_  \
+*               \_ \
+*                 \_\
+*                     C
+*
+* two triangles/sprites : 1) ABB' 2) BB'C
+*
+****************
+*
+*	x e ]-80,80[
+*	y e [0,101]
+
+                xref popax,ScreenBase
+                
+x1	equ ptr1
+y1	equ ptr1+1
+x2	equ ptr2
+y2	equ ptr2+1
+x3	equ ptr3
+y3	equ ptr3+1
+
+							bsszp
+
+tiltAB  ds 2
+tiltBC  ds 2
+tiltAC  ds 2
+					
+							text
+
+triangle::
+		jsr popax
+                sta line_scb_color
+                sta line_scb2_color
+*
+* sort points
+*
+		jsr popax
+		sta tmp1
+		stx tmp1+1
+		ldy #5
+_0		  lda (tmp1),y
+		  sta x1,y
+		  dey
+		bpl _0
+
+		lda y2
+		cmp y1
+		bcs _1
+		  lda x1
+		  ldx x2
+		  sta x2
+		  stx x1
+		  lda y1
+		  ldx y2
+		  sta y2
+		  stx y1
+_1		lda y3
+		cmp y1
+		bcs _2
+		  lda x1
+		  ldx x3
+		  sta x3
+		  stx x1
+		  lda y1
+		  ldx y3
+		  sta y3
+		  stx y1
+_2		lda y3
+		cmp y2
+		bcs _3
+		  lda x3
+		  ldx x2
+		  sta x2
+		  stx x3
+		  lda y3
+		  ldx y2
+		  sta y2
+		  stx y3
+_3		  
+*
+                ldy #0
+                sec
+                lda y2
+                sbc y1
+                sta $fc56
+                sta line_scb_ysize+1
+                stz $fc60
+                sec
+                lda x2
+                sbc x1
+                bpl _4
+                  dey
+                  eor #$ff
+                  ina
+_4	        sta $fc62
+		stz $fc63
+_5		bit $fc92
+		bmi _5
+		tya
+		bmi _6
+		lda $fc53
+		sta tiltAB
+		lda $fc54
+		sta tiltAB+1
+		bra _7
+_6		sec
+		lda #0
+		sbc $fc53
+		sta tiltAB
+		lda #0
+		sbc $fc54
+		sta tiltAB+1
+_7		
+*
+                ldy #0
+		sec
+		lda y3
+		sbc y1
+		sta $fc56
+		stz $fc60
+		sec
+		lda x3
+		sbc x1
+		bpl _8
+		  eor #$ff
+		  ina
+		  dey
+_8		sta $fc62
+		stz $fc63
+_9		bit $fc92
+		bmi _9
+		tya
+		bmi _10
+		lda $fc53
+		sta tiltAC
+		lda $fc54
+		sta tiltAC+1
+		bra _11
+_10		sec
+		lda #0
+		sbc $fc53
+		sta tiltAC
+		lda #0
+		sbc $fc54
+		sta tiltAC+1
+_11		
+*		  
+                ldy #0
+                sec
+                lda y3
+                sbc y2
+                sta $fc56
+                stz $fc60
+                ina
+                sta line_scb2_ysize+1
+                sec
+                lda x3
+                sbc x2
+                bpl _12
+                  eor #$ff
+                  ina
+_12		sta $fc62
+		stz $fc63
+_13		bit $fc92
+		bmi _13
+		tya
+		bmi _14
+		lda $fc53
+		sta tiltBC
+		lda $fc54
+		sta tiltBC+1
+		bra _15
+_14		sec
+		lda #0
+		sbc $fc53
+		sta tiltBC
+		lda #0
+		sbc $fc54
+		sta tiltBC+1
+_15		
+***************
+		lda x1
+		sta line_scb_x
+		lda y1
+                sta line_scb_y
+                lda #$80
+                sta line_scb_xsize
+                lda #1
+                sta line_scb_xsize+1
+		lda tiltAB+1
+		bpl _16
+		  lda tiltAC+1
+		  bpl _17
+		    sec
+		    lda tiltAC
+		    sbc tiltAB
+		    lda tiltAC+1
+		    sbc tiltAB+1
+		    bcs _18
+		      lda tiltAB
+		      sta ptr1
+		      lda tiltAB+1
+		      sta ptr1+1
+		      lda tiltAC
+		      sta ptr2
+		      lda tiltAC+1
+		      sta ptr2+1
+		      bra _19
+_18
+		      lda tiltAC
+		      sta ptr1
+		      lda tiltAC+1
+		      sta ptr1+1
+		      lda tiltAB
+		      sta ptr2
+		      lda tiltAB+1
+		      sta ptr2+1
+_19                 sec
+                    lda ptr2
+                    sbc ptr1
+                    sta ptr2
+                    lda ptr2+1
+                    sbc ptr1+1
+                    sta ptr2+1
+                    bra _20
+_17               lda tiltAB
+                  sta ptr1
+                  lda tiltAB+1
+                  sta ptr1+1
+                  sec
+                  lda tiltAC
+                  sbc ptr1
+                  sta ptr2
+                  lda tiltAC+1
+                  sbc ptr1+1
+                  sta ptr2+1
+_20               bra _21
+_16             lda tiltAC+1
+                bpl _22
+                  sta ptr1+1
+                  lda tiltAC
+                  sta ptr1
+                  sec
+                  lda tiltAB
+                  sbc ptr1
+                  sta ptr2
+                  lda tiltAB+1
+                  sbc ptr1+1
+                  sta ptr2+1
+                  bra _23
+_22               sec
+                  lda tiltAC
+                  sbc tiltAB
+                  lda tiltAC+1
+                  sbc tiltAB+1
+                  bcs _24
+                    lda tiltAC
+                    sta ptr1
+                    lda tiltAC+1
+                    sta ptr1+1
+                    lda tiltAB
+                    sta ptr2
+                    lda tiltAB+1
+                    sta ptr2+1
+                    bra _25
+_24                 lda tiltAB
+                    sta ptr1
+                    lda tiltAB+1
+                    sta ptr1+1
+                    lda tiltAC
+                    sta ptr2
+                    lda tiltAC+1
+                    sta ptr2+1
+_25                 sec
+                    lda ptr2
+                    sbc ptr1
+                    sta ptr2
+                    lda ptr2+1
+                    sbc ptr1+1
+                    sta ptr2+1
+_23
+_21
+                lda ptr1
+                sta line_scb_tilt
+                lda ptr1+1
+                sta line_scb_tilt+1
+                lda ptr2
+                sta line_scb_stretch
+                lda ptr2+1
+                sta line_scb_stretch+1
+ 
+;>                MOVE x3,line_scb2_x
+;>                MOVE y3,line_scb2_y
+;>                MOVEI $180,line_scb2_xsize      ; $180
+;>                _IFMI tiltBC+1
+;>                  _IFMI tiltAC+1
+;>                    CMPW tiltBC,tiltAC
+;>                    _IFLT                       ; (-tiltAC)<(-tiltAB)
+;>                      MOVE tiltBC,temp
+;>                      MOVE tiltAC,temp1
+;>                    _ELSE
+;>                      MOVE tiltAC,temp
+;>                      MOVE tiltBC,temp1
+;>                    _ENDIF
+;>                    NEGW temp
+;>                    NEGW temp1
+;>                    SUBWABC temp,temp1,temp1
+;>                  _ELSE
+;>                    MOVE tiltAC,temp
+;>                    SUBWABC tiltBC,tiltAC,temp1
+;>                    NEGW temp
+;>                  _ENDIF
+;>                _ELSE                           ; (tiltBC>0)
+;>                  _IFMI tiltAC+1
+;>                    MOVE tiltBC,temp
+;>                    NEGW temp
+;>                    SUBWABC tiltAC,tiltBC,temp1
+;>                  _ELSE
+;>                    CMPW tiltBC,tiltAC
+;>                    _IFGE                       ; AC>=BC
+;>                      MOVE tiltAC,temp
+;>                      MOVE tiltBC,temp1
+;>                    _ELSE
+;>                      MOVE tiltBC,temp
+;>                      MOVE tiltAC,temp1
+;>                    _ENDIF
+;>                    SUBWABC temp1,temp,temp1
+;>                    NEGW temp
+;>                  _ENDIF
+;>                _ENDIF
+;>                MOVE temp,line_scb2_tilt
+;>                MOVE temp1,line_scb2_stretch
+;>                lda #$D0
+;>                sta line_scb2
+                lda ScreenBase
+                sta $fc08
+                lda ScreenBase+1
+                sta $fc09
+                lda #<line_scb
+                sta $fc10
+                lda #>line_scb
+                sta $fc11
+
+                lda #1
+                STA $FC91
+                stz $fd90
+wait           STZ $FD91
+                bit $fc92
+                bne wait
+                STZ $FD90
+                rts
+**************************************************
+
+line_scb        dc.b $c0,$80|$30,0
+                dc.w 0,dotimage
+line_scb_x      dc.w 0
+line_scb_y      dc.w 0
+line_scb_xsize  dc.w $100
+line_scb_ysize  dc.w $100
+line_scb_stretch dc.w 0
+line_scb_tilt   dc.w 0
+line_scb_color  dc.b $03
+
+line_scb2       dc.b $d0,$80|$30,0
+                dc.w 0,dotimage
+line_scb2_x     dc.w 0
+line_scb2_y     dc.w 0
+line_scb2_xsize dc.w $100
+line_scb2_ysize dc.w $100
+line_scb2_stretch dc.w 0
+line_scb2_tilt  dc.w 0
+line_scb2_color dc.b $e
+
+
+dotimage        dc.b 2,$11,0
